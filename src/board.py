@@ -1,11 +1,3 @@
-class Piece:
-    square = int()
-    piece = int()
-
-    def __init__(self, Square: int, Piece: int):
-        self.square = Square
-        self.piece = Piece
-
 
 '''
 board
@@ -34,13 +26,29 @@ a different symbol in the code. "." represents empty squares kek
 | 5      | white | queen
 | 6      | white | king
 | 7      | black | pawn
-  .        .       .
-  .        .       .
-  .        .       .
-
+| .      | .       .
+| .      | .       .
+| .      | .       .
+| 0     | none  | empty
+| 13     | none  | out of board
 this makes it so that you can check piece color. x > 6 is black, x < 7 is white
 
 '''
+
+N, S, W, E = 10, -10, 1, -1
+
+# directions for sliding pieces
+directions = {
+    3: ()
+}
+
+class Piece:
+    square = int()
+    piece = int()
+
+    def __init__(self, Square: int, Piece: int):
+        self.square = Square
+        self.piece = Piece
 
 class Position:
 
@@ -68,13 +76,27 @@ class Position:
     
     def gen(self):
 
-        for piece in pieces:
+        for piece in self.pieces:
 
-            can_move = bool()
+            if piece.piece < 7 == self.active_color:
+                # major difference is that pawns move diff based on color
+                if piece.piece % 6 == 1:
+                    pass
 
-            if active_color and piece.piece < 7:
+                elif piece.piece % 6 == 2:
+                    pass
 
-            if piece.piece < 7 and :
+                elif piece.piece % 6 == 6:
+                    pass
+
+                else:
+                    # sliding pieces over here
+
+                    
+
+                
+                
+
 
 
 
