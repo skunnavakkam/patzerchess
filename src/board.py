@@ -64,6 +64,7 @@ class Position:
     fm = int()
     board = list()
     active_color = bool() # true if w 
+    king_in_check = bool()
     
     # wc = white castle, bc = black castle, ep = enpassant, hm & fm = half and full move clocks
     def __init__(self, board, active_color, castling, ep, hm, fm):
