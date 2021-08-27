@@ -124,8 +124,37 @@ class Position:
                             pseudo_legal_moves.append((piece.square, target_dest))
         
                 # kings have to be able to castle and don't slide
+                # i don't think i actually have to check for whether the king is in check
+                # i can just set the value of the king to an impossibly high amount so the computer doens't pick that
+                # got to sanitize this in case of player input though
+
                 elif piece.piece % 6 == 0:
-                    pass
+
+                    # traditional moves
+                    for d in directions[5]:
+                        if self.board[target_dest] == 0: # checking if empty square
+                            pseudo_legal_moves.append((piece.square, target_dest))
+                        elif self.board[target_dest] == 13 or ((self.board[target_dest] < 7) == self.active_color): # checking if out of board or if same piece
+                            # we don't want to bother generating a piece if it overlaps with  
+                            break
+                        else:
+                            # this should be a capture, so that means end the move generation for this piece once you have generated this move
+                            pseudo_legal_moves.append((piece.square, target_dest))
+                            break
+
+                    # need to check for castle
+                    if self.active_color:
+                        # will be white
+                        if white_ks:
+                            pass
+                        if white_qs:
+                            pass
+                    else:
+                        # will be black
+                        if black_qs:
+                            pass
+                        if black_ks:
+                            pass
 
                 else:
                     # sliding pieces over here
