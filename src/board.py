@@ -79,6 +79,63 @@ class Position:
         self.white_ks, self.white_qs = 'K' in castling, 'Q' in castling
         self.black_ks, self.black_qs = 'k' in castling, 'q' in castling
 
+    def check_if_square_attacked(self, square):
+        is_attacked = bool()
+
+        if self.active_color:
+            if self.board[square + N + E] == 7 or self.board[square + N + W] == 7: # pawn
+                return True
+            
+            for d in directions[2]: # horsey
+                if self.board[square + d] == 8:
+                    return True
+                    
+            for d in directions[3]: # bihop
+                for i in range(1,9):
+                    if self.board[square + d * i] != 0:
+                        if self.board[square + d * i] == 9 or self.board[square + d * i] == 11:
+                            return True
+                        break
+
+            for d in directions[4]: # rock + queen
+                for i in range(1,9):
+                    if self.board[square + d * i] != 0:
+                        if self.board[square + d * i] == 10 or self.board[square + d * i] == 11:
+                            return True
+                        break
+
+            for d in directions[5]:
+                if self.board[square + d * i] == 12:
+                    return True
+
+        else:
+            if self.board[square + S + E] == 7 or self.board[square + S + W] == 7: # pawn
+                return True
+            
+            for d in directions[2]: # horsey
+                if self.board[square + d] == 2:
+                    return True
+                    
+            for d in directions[3]: # bihop
+                for i in range(1,9):
+                    if self.board[square + d * i] != 0:
+                        if self.board[square + d * i] == 3 or self.board[square + d * i] == 5:
+                            return True
+                        break
+
+            for d in directions[4]: # rock + queen
+                for i in range(1,9):
+                    if self.board[square + d * i] != 0:
+                        if self.board[square + d * i] == 4 or self.board[square + d * i] == 5:
+                            return True
+                        break
+
+            for d in directions[5]:
+                if self.board[square + d * i] == 6:
+                    return True
+            
+        return False
+
     def gen_out_of_check(self):
         pseudo_legal_moves = list()
         for piece in self.piece_dict.values():
@@ -111,7 +168,7 @@ class Position:
                         pseudo_legal_moves.append((piece.square, piece.square + pd + pd))
 
                 
-                # knights don't slide, and in addition don't care if their paths are being blocked
+                # horsey don't slide, and in addition don't care if their paths are being blocked
                 elif piece.piece % 6 == 2:
                     for d in directions[piece.piece % 6]:
 
@@ -123,10 +180,11 @@ class Position:
                         if (self.board[target_dest] == 0 or (self.board[target_dest] < 7 == self.active_color)) and self.board[target_dest] != 13:
                             pseudo_legal_moves.append((piece.square, target_dest))
         
+
+
                 # kings have to be able to castle and don't slide
-                # i don't think i actually have to check for whether the king is in check
-                # i can just set the value of the king to an impossibly high amount so the computer doens't pick that
-                # got to sanitize this in case of player input though
+                # the repo im referencing doesn't check if the king is in check and just plays the move
+                # but that makes it so the comp will have to calculate extra variations
 
                 elif piece.piece % 6 == 0:
 
@@ -145,15 +203,15 @@ class Position:
                     # need to check for castle
                     if self.active_color:
                         # will be white
-                        if white_ks:
+                        if self.white_ks:
                             pass
-                        if white_qs:
+                        if self.white_qs:
                             pass
                     else:
                         # will be black
-                        if black_qs:
+                        if self.black_qs:
                             pass
-                        if black_ks:
+                        if self.black_ks:
                             pass
 
                 else:
