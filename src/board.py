@@ -155,19 +155,20 @@ class Position:
                     if self.board[piece.square + pd] == 0:
 
                         if piece.square + pd // 10 == 9:
-                            pseudo_legal_moves.append(piece.square, piece.square + pd, )
+                            for i in range(2,6):
+                                pseudo_legal_moves.append((piece.square, piece.square + pd, not self.active_color * 6 + 2))
                         else: 
-                            pseudo_legal_moves.append((piece.square, piece.square + pd))
+                            pseudo_legal_moves.append((piece.square, piece.square + pd, piece.piece))
 
                     if self.board[piece.square + pd + E] != 0 and self.board[piece.square + pd + E] != 13 and not ((self.board[piece.square + pd + E] < 7) == self.active_color):
                         # i think this should be a capture as well omegalul
-                        pseudo_legal_moves.append((piece.square, piece.square + pd + E))
+                        pseudo_legal_moves.append((piece.square, piece.square + pd + E, piece.piece))
 
                     if self.board[piece.square + pd + W] != 0 and self.board[piece.square + pd + W] != 13 and not ((self.board[piece.square + pd + W] < 7) == self.active_color):
-                        pseudo_legal_moves.append((piece.square, piece.square + pd + W))
+                        pseudo_legal_moves.append((piece.square, piece.square + pd + W, piece.piece))
 
                     if self.board[piece.square + pd + pd] == 0 and piece.square//10 == 2 and self.board[piece.square + pd] == 0:
-                        pseudo_legal_moves.append((piece.square, piece.square + pd + pd))
+                        pseudo_legal_moves.append((piece.square, piece.square + pd + pd, piece.piece))
 
                 
                 # horsey don't slide, and in addition don't care if their paths are being blocked
@@ -256,22 +257,26 @@ class Position:
                             target_dest = piece.square + i * d
 
                             if self.board[target_dest] == 0: # checking if empty square
-                                pseudo_legal_moves.append((piece.square, target_dest))
+                                pseudo_legal_moves.append((piece.square, target_dest, piece.piece))
                             elif self.board[target_dest] == 13 or ((self.board[target_dest] < 7) == self.active_color): # checking if out of board or if same piece
                                 # we don't want to bother generating a piece if it overlaps with  
                                 break
                             else:
                                 # this should be a capture, so that means end the move generation for this piece once you have generated this move
-                                pseudo_legal_moves.append((piece.square, target_dest))
+                                pseudo_legal_moves.append((piece.square, target_dest, piece.piece))
                                 break
                                 
         return pseudo_legal_moves
 
-    def move(self, start, end, piece): # the piece would be equal to the promotion value in the case of promotion
+    def move(self, move): # the piece would be equal to the promotion value in the case of promotion
+
+        start = move[0]
+        end = move [1]
+        piece = move[2]
+
 
         is_pawn_move = bool()
         is_capture = bool()
-        is_promotion = bool()
 
         if self.active_color:
             
@@ -298,23 +303,26 @@ class Position:
 
             is_pawn_move = True
 
-            is_promotion = piece != self.board[start]
-
             if abs(end - start) == 20:
                 self.ep = start - 10
                 
                 if self.board[start] == 1:
                     self.ep = start + 10
 
-        if end in self.piece_dict:
-            is_capture = True
-            self.piece_dict.pop(end)
-
-        self.piece_dict[start].square = end
-
-        self.board[end] = piece
+        is_capture = end in self.piece_dict
 
         self.board[start] = 0
+        self.board[end] = piece
+
+        self.piece_dict.pop(start)
+        
+        self.piece_dict[end] = Piece(end, piece)
+
+        if not is_capture and not is_pawn_move:
+            self.hm += 1
+            if not self.active_color:
+                self.fm += 1
+        
 
         
     def __repr__(self) -> str:
