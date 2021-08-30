@@ -48,8 +48,8 @@ directions = {
 
 class Position:
 
-    wc = list()
-    bc = list()
+    wc = [False, False]
+    bc = [False, False]
     ep = int()
     hm = int()
     fm = int()
@@ -61,11 +61,6 @@ class Position:
     def __init__(self, board, active_color, castling, ep, hm, fm):
 
         self.board, self.active_color, self.ep, self.hm, self.fm = board, active_color, ep, hm, fm  
-
-        for e, piece in enumerate(board):
-            if piece > 0 and piece < 13: 
-                self.piece_dict[e] = Piece(Square=e, Piece=piece)
-
         self.wc[0], self.wc[1] = 'K' in castling, 'Q' in castling
         self.bc[0], self.bc[1] = 'k' in castling, 'q' in castling
 
@@ -102,7 +97,7 @@ class Position:
             if self.board[square + S + E] == 1 or self.board[square + S + W] == 1:
                 return True
         else:
-            if self.board[square + N + E] == 7 or self.board[square + N + W] == 7
+            if self.board[square + N + E] == 7 or self.board[square + N + W] == 7:
                 return True
 
         return False
@@ -112,27 +107,84 @@ class Position:
 
         for square, piece in enumerate(self.board):
 
-            if piece == 0 or piece == 13:
-                continue
-                # we don't care about things that aren't pieces
+            if piece == 0 or piece == 13 or piece > 6 != self.active_color:
+                pass # we don't care about things that aren't pieces
 
-            if piece % 6 == 1:
-                pd = -20 + 20 * self.active_color
+            elif piece % 6 == 1:
+                
+
+                pd = -10 + 20 * self.active_color
 
                 for i in (pd + E, pd + W):
-                    if self.board[square + i] > 6 == self.active_color and self.board[square + i] not in [0, 13]:
+                    if (self.board[square + i] > 6 == self.active_color and self.board[square + i] not in [0, 13]) or square + i == self.ep:
                         pseudo_legal_moves.append((square, square + i, piece))
                 
                 if self.board[square + pd] == 0:
                     if (square // 10 == (80 - 60 * self.active_color)) and self.board[square + pd + pd] == 0:
                         pseudo_legal_moves.append((square, square + pd + pd, piece)) # move two squares
 
-                    if square // 10 == (80 - 60 * not self.active_color):
+                    if square // 10 == (80 - 60 * (not self.active_color)):
                         for i in range(2,6):
                             pseudo_legal_moves.append((square, square + pd, i))
                     
                     else: 
                         pseudo_legal_moves.append((square, square + pd, piece))
+                
+            elif piece % 6 == 2:
+
+                for d in directions[2]:
+
+                    if square + d > 99 or square + d < 0:
+                        continue
+
+                    if (self.board[square + d] == 0 or self.board[square + d] > 6 == self.active_color) and self.board[square + d] != 13:
+                        pseudo_legal_moves.append((square, square + d, piece))
+
+            elif piece % 6 == 0:
+
+                for d in directions[5]:
+                    if self.board[square + d] == 0 or self.board[square + d] > 6 == self.active_color:
+                        pseudo_legal_moves.append((square, square + d, piece))
+
+                # king and queenside castling
+                ks_directions = [E, E + E]
+                qs_directions = [W, W + W, W + W + W]
+
+                can_ks = bool()
+                can_qs = bool()
+
+                for d in ks_directions:
+                    can_ks = can_ks and self.is_square_attacked(square + d, not self.active_color)
+
+                for d in qs_directions:
+                    can_qs = can_qs and self.is_square_attacked(square + d, not self.active_color)
+
+                if can_ks:
+                    pseudo_legal_moves.append((square, square + E + E, piece))
+                
+                if can_qs:
+                    pseudo_legal_moves.append((square, square + W + W + W, piece))
+
+            
+            else:
+
+                for d in directions[piece % 6]:
+                    for i in range(1,8):
+
+                        target_dest = square + i * d
+
+                        if self.board[target_dest] == 0:
+                            #print(self.board[target_dest])
+                            # empty
+                            #pseudo_legal_moves.append((square, target_dest, piece))
+                            pass
+                        elif self.board[target_dest] > 6 != self.active_color or self.board[target_dest] == 13:
+                            break
+                        else:
+                            break
+
+
+                
 
             
                     
@@ -182,14 +234,8 @@ class Position:
                 if self.board[start] == 1:
                     self.ep = start + 10
 
-        is_capture = end in self.piece_dict
-
         self.board[start] = 0
         self.board[end] = piece
-
-        self.piece_dict.pop(start)
-        
-        self.piece_dict[end] = Piece(end, piece)
 
         if not is_capture and not is_pawn_move:
             self.hm += 1
