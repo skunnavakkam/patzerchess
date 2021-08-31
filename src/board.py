@@ -48,8 +48,7 @@ directions = {
 
 class Position:
 
-    wc = [False, False]
-    bc = [False, False]
+    castling = [False, False, False, False]
     ep = int()
     hm = int()
     fm = int()
@@ -61,8 +60,7 @@ class Position:
     def __init__(self, board, active_color, castling, ep, hm, fm):
 
         self.board, self.active_color, self.ep, self.hm, self.fm = board, active_color, ep, hm, fm  
-        self.wc[0], self.wc[1] = 'K' in castling, 'Q' in castling
-        self.bc[0], self.bc[1] = 'k' in castling, 'q' in castling
+        self.castling[0], self.castling[1], self.castling[2], self.castling[3] = 'K' in castling, 'Q' in castling, 'k' in castling, 'q' in castling
 
     def is_square_attacked(self, square, color_to_check):
         
@@ -114,8 +112,11 @@ class Position:
 
                 pd = -10 + 20 * self.active_color # pawn direction
 
-                for i in (pd + E, pd + W):
-                    if (self.board[square + i] > 6 == self.active_color and self.board[square + i] not in [0, 13]) or square + i == self.ep:
+                for i in [pd + E, pd + W]:
+
+                    print(square)
+
+                    if self.board[square + i] > 6 or square + i == self.ep:
                         pseudo_legal_moves.append((square, square + i, piece))
                 
                 if self.board[square + pd] == 0:
@@ -158,10 +159,10 @@ class Position:
                 for d in qs_directions:
                     can_qs = can_qs and self.is_square_attacked(square + d, not self.active_color)
 
-                if can_ks:
+                if can_ks and self.castling[2 - (2 * self.active_color)]:
                     pseudo_legal_moves.append((square, square + E + E, piece))
                 
-                if can_qs:
+                if can_qs and self.castling[3 - (2 * self.active_color)]:
                     pseudo_legal_moves.append((square, square + W + W + W, piece))
 
             
@@ -195,26 +196,16 @@ class Position:
         is_pawn_move = bool()
         is_capture = bool()
 
-        if self.active_color:
-            
-            if self.board[start] == 6:
-                self.white_ks = False
-                self.white_qs = False
-            if self.board[start] == 4:
-                if start == 11 and self.white_qs:
-                    self.white_qs = False
-                if start == 18 and self.white_ks:
-                    self.white_ks = False
-        
-        else:
-            if self.board[start] == 12:
-                self.white_ks = False
-                self.white_qs = False
-            if self.board[start] == 10:
-                if start == 11 and self.white_qs:
-                    self.white_qs = False
-                if start == 18 and self.white_ks:
-                    self.white_ks = False
+        if piece % 6 == 0:
+            self.castling[3 - (self.active_color * 2)] = self.castling[2-(self.active_color * 2)] = False
+        if start == (88 - 70 * self.active_color) and self.castling[3-self.active_color * 2]:
+            self.white_qs = False
+        if start == (81 - 70 * self.active_color) and self.castling[2-self.active_color * 2]:
+            self.white_ks = False
+
+        if end == self.ep:
+            self.board[end + 10 - (20 * self.active_color)] = 0
+
 
         if self.board[start] % 6 == 1:
 
