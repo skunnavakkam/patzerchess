@@ -64,23 +64,23 @@ class Position:
         self.wc[0], self.wc[1] = 'K' in castling, 'Q' in castling
         self.bc[0], self.bc[1] = 'k' in castling, 'q' in castling
 
-    def is_square_attacked(self, square, col_to_check):
+    def is_square_attacked(self, square, color_to_check):
         
         # Knight
         for d in directions[2]:
-            if self.board[square + d] == (8 - col_to_check * 6):
+            if self.board[square + d] == (8 - color_to_check * 6):
                 return True
         
         # King
         for d in directions[5]:
-            if self.board[square + d] == (12 - col_to_check * 6):
+            if self.board[square + d] == (12 - color_to_check * 6):
                 return True
         
         # diagonal (Bishop + Queen)
         for d in directions[3]:
             for i in range(1,9):
                 if self.board != 0:
-                    if self.board[square + d] == (11 - col_to_check * 6) or self.board[square + d] == (9 - col_to_check * 6):
+                    if self.board[square + d] == (11 - color_to_check * 6) or self.board[square + d] == (9 - color_to_check * 6):
                         return True
                     break
         
@@ -88,12 +88,12 @@ class Position:
         for d in directions[4]:
             for i in range(1,9):
                 if self.board != 0:
-                    if self.board[square + d] == (11 - col_to_check * 6) or self.board[square + d] == (10 - col_to_check * 6):
+                    if self.board[square + d] == (11 - color_to_check * 6) or self.board[square + d] == (10 - color_to_check * 6):
                         return True
                     break
         
         # pawns
-        if col_to_check:
+        if color_to_check:
             if self.board[square + S + E] == 1 or self.board[square + S + W] == 1:
                 return True
         else:
@@ -108,19 +108,18 @@ class Position:
         for square, piece in enumerate(self.board):
 
             if piece == 0 or piece == 13 or piece > 6 != self.active_color:
-                pass # we don't care about things that aren't pieces
+                continue # we don't care about things that aren't pieces
 
             elif piece % 6 == 1:
-                
 
-                pd = -10 + 20 * self.active_color
+                pd = -10 + 20 * self.active_color # pawn direction
 
                 for i in (pd + E, pd + W):
                     if (self.board[square + i] > 6 == self.active_color and self.board[square + i] not in [0, 13]) or square + i == self.ep:
                         pseudo_legal_moves.append((square, square + i, piece))
                 
                 if self.board[square + pd] == 0:
-                    if (square // 10 == (80 - 60 * self.active_color)) and self.board[square + pd + pd] == 0:
+                    if (square // 10 == (8 - 6 * self.active_color)) and self.board[square + pd + pd] == 0:
                         pseudo_legal_moves.append((square, square + pd + pd, piece)) # move two squares
 
                     if square // 10 == (80 - 60 * (not self.active_color)):
@@ -172,25 +171,18 @@ class Position:
                     for i in range(1,8):
 
                         target_dest = square + i * d
+                        
 
                         if self.board[target_dest] == 0:
                             #print(self.board[target_dest])
                             # empty
-                            #pseudo_legal_moves.append((square, target_dest, piece))
-                            pass
-                        elif self.board[target_dest] > 6 != self.active_color or self.board[target_dest] == 13:
+                            pseudo_legal_moves.append((square, target_dest, piece))
+                        elif (self.board[target_dest] > 6) != self.active_color or self.board[target_dest] == 13:
                             break
                         else:
+                            pseudo_legal_moves.append((square, target_dest, piece))
                             break
-
-
-                
-
-            
-                    
-
-                
-                                
+              
         return pseudo_legal_moves
 
     def move(self, move): # the piece would be equal to the promotion value in the case of promotion
@@ -228,11 +220,10 @@ class Position:
 
             is_pawn_move = True
 
-            if abs(end - start) == 20:
+            if end - start == 20:
+                self.ep = start + 10
+            elif end - start == -20:
                 self.ep = start - 10
-                
-                if self.board[start] == 1:
-                    self.ep = start + 10
 
         self.board[start] = 0
         self.board[end] = piece
