@@ -20,7 +20,7 @@ a different symbol in the code. "13" represents empty squares kek
 
 | NUMBER | COLOR | PIECE
 | 1      | white | pawn
-| 2      | white | knight
+| 2      | white | knightx
 | 3      | white | bishop
 | 4      | white | rook
 | 5      | white | queen
@@ -186,6 +186,8 @@ class Position:
               
         return pseudo_legal_moves
 
+
+    # move piece
     def move(self, move): # the piece would be equal to the promotion value in the case of promotion
 
         start = move[0]
@@ -206,15 +208,14 @@ class Position:
         if end == self.ep:
             self.board[end + 10 - (20 * self.active_color)] = 0
 
-
         if self.board[start] % 6 == 1:
-
             is_pawn_move = True
-
             if end - start == 20:
                 self.ep = start + 10
             elif end - start == -20:
                 self.ep = start - 10
+            if abs(end - start) == 20:
+                self.ep = start - ((end - start)/2)
 
         self.board[start] = 0
         self.board[end] = piece
