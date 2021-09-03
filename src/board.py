@@ -1,5 +1,6 @@
 
 # if you want to see an actual decent chess engine, please take a look at sunfish, the inspiration and reference for this project
+# time taken = 30 to 40 micro seconds running at home
 
 '''
 board
