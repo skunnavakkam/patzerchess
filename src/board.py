@@ -1,4 +1,7 @@
 
+# if you want to see an actual decent chess engine, please take a look at sunfish, the inspiration and reference for this project
+# time taken = 30 to 40 micro seconds running at home
+
 '''
 board
 
@@ -20,7 +23,7 @@ a different symbol in the code. "13" represents empty squares kek
 
 | NUMBER | COLOR | PIECE
 | 1      | white | pawn
-| 2      | white | knight
+| 2      | white | knightx
 | 3      | white | bishop
 | 4      | white | rook
 | 5      | white | queen
@@ -35,9 +38,9 @@ this makes it so that you can check piece color. x > 6 is black, x < 7 is white
 
 '''
 
+# stuff for generation
 N, S, E, W = 10, -10, -1, 1
-
-# directions for sliding pieces
+A1, H1, A8, H8 = 11, 18, 81, 88
 directions = {
     2: (N + N + W, S + S + W, W + W + S, W + W + N, N + N + E, S + S + E, E + E + S, E + E + N),
     3: (N+W, S+W, N+E, S+E), # bishop
@@ -45,292 +48,259 @@ directions = {
     5: (N, S, W, E, N+W, S+W, N+E, S+E)
 }
 
-class Piece:
-    square = int()
-    piece = int()
 
-    def __init__(self, Square: int, Piece: int):
-        self.square = Square
-        self.piece = Piece
+# stuff for evaluation
+piece = { 1: 100, 2: 280, 3: 320, 4: 479, 5: 929, 0: 60000 }
+pst = {
+    1: (   0,   0,   0,   0,   0,   0,   0,   0,
+            78,  83,  86,  73, 102,  82,  85,  90,
+             7,  29,  21,  44,  40,  31,  44,   7,
+           -17,  16,  -2,  15,  14,   0,  15, -13,
+           -26,   3,  10,   9,   6,   1,   0, -23,
+           -22,   9,   5, -11, -10,  -2,   3, -19,
+           -31,   8,  -7, -37, -36, -14,   3, -31,
+             0,   0,   0,   0,   0,   0,   0,   0),
+    2: ( -66, -53, -75, -75, -10, -55, -58, -70,
+            -3,  -6, 100, -36,   4,  62,  -4, -14,
+            10,  67,   1,  74,  73,  27,  62,  -2,
+            24,  24,  45,  37,  33,  41,  25,  17,
+            -1,   5,  31,  21,  22,  35,   2,   0,
+           -18,  10,  13,  22,  18,  15,  11, -14,
+           -23, -15,   2,   0,   2,   0, -23, -20,
+           -74, -23, -26, -24, -19, -35, -22, -69),
+    3: ( -59, -78, -82, -76, -23,-107, -37, -50,
+           -11,  20,  35, -42, -39,  31,   2, -22,
+            -9,  39, -32,  41,  52, -10,  28, -14,
+            25,  17,  20,  34,  26,  25,  15,  10,
+            13,  10,  17,  23,  17,  16,   0,   7,
+            14,  25,  24,  15,   8,  25,  20,  15,
+            19,  20,  11,   6,   7,   6,  20,  16,
+            -7,   2, -15, -12, -14, -15, -10, -10),
+    4: (  35,  29,  33,   4,  37,  33,  56,  50,
+            55,  29,  56,  67,  55,  62,  34,  60,
+            19,  35,  28,  33,  45,  27,  25,  15,
+             0,   5,  16,  13,  18,  -4,  -9,  -6,
+           -28, -35, -16, -21, -13, -29, -46, -30,
+           -42, -28, -42, -25, -25, -35, -26, -46,
+           -53, -38, -31, -26, -29, -43, -44, -53,
+           -30, -24, -18,   5,  -2, -18, -31, -32),
+    5: (   6,   1,  -8,-104,  69,  24,  88,  26,
+            14,  32,  60, -10,  20,  76,  57,  24,
+            -2,  43,  32,  60,  72,  63,  43,   2,
+             1, -16,  22,  17,  25,  20, -13,  -6,
+           -14, -15,  -2,  -5,  -1, -10, -20, -22,
+           -30,  -6, -13, -11, -16, -11, -16, -27,
+           -36, -18,   0, -19, -15, -15, -21, -38,
+           -39, -30, -31, -13, -31, -36, -34, -42),
+    0: (   4,  54,  47, -99, -99,  60,  83, -62,
+           -32,  10,  55,  56,  56,  55,  10,   3,
+           -62,  12, -57,  44, -67,  28,  37, -31,
+           -55,  50,  11,  -4, -19,  13,   0, -49,
+           -55, -43, -52, -28, -51, -47,  -8, -50,
+           -47, -42, -43, -79, -64, -32, -29, -32,
+            -4,   3, -14, -50, -57, -18,  13,   4,
+            17,  30,  -3, -14,   6,  -1,  40,  18),
+}
+
+doubled_pawn_penalty = -30
+isolated_pawn_penalty = -40
+tripled_or_greater_penalty = -70 
 
 class Position:
 
-    piece_dict = dict() # probably a better way, a dict of square: piece
-    white_ks = bool()
-    black_ks = bool()
-    white_qs = bool()
-    black_qs = bool()
+    castling = [False, False, False, False]
     ep = int()
     hm = int()
     fm = int()
     board = list()
     active_color = bool() # true if w 
     king = None
+    pawn_structure = [[0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0]] # [white, black]. each digit maps to a column and counts the number of pawns in that column
     
     # wc = white castle, bc = black castle, ep = enpassant, hm & fm = half and full move clocks
     def __init__(self, board, active_color, castling, ep, hm, fm):
 
         self.board, self.active_color, self.ep, self.hm, self.fm = board, active_color, ep, hm, fm  
+        self.castling[0], self.castling[1], self.castling[2], self.castling[3] = 'K' in castling, 'Q' in castling, 'k' in castling, 'q' in castling
 
-        for e, piece in enumerate(board):
-            if piece > 0 and piece < 13: 
-                self.piece_dict[e] = Piece(Square=e, Piece=piece)
+        for square, piece in enumerate(board):
+            if piece == 1:
+                self.pawn_structure[0][square % 10] = self.pawn_structure[0][square % 10] + 1
+            elif piece == 6:
+                self.pawn_structure[1][square % 10] = self.pawn_structure[0][square % 10] + 1
 
-        self.white_ks, self.white_qs = 'K' in castling, 'Q' in castling
-        self.black_ks, self.black_qs = 'k' in castling, 'q' in castling
 
-    def is_square_attacked(self, square):
-
-        if self.active_color:
-            if self.board[square + N + E] == 7 or self.board[square + N + W] == 7: # pawn
+    def is_square_attacked(self, square, color_to_check):
+        
+        # Knight
+        for d in directions[2]:
+            if self.board[square + d] == (8 - color_to_check * 6):
                 return True
-            
-            for d in directions[2]: # horsey
-                if self.board[square + d] == 8:
-                    return True
-                    
-            for d in directions[3]: # bihop
-                for i in range(1,9):
-                    if self.board[square + d * i] != 0:
-                        if self.board[square + d * i] == 9 or self.board[square + d * i] == 11:
-                            return True
-                        break
-
-            for d in directions[4]: # rock + queen
-                for i in range(1,9):
-                    if self.board[square + d * i] != 0:
-                        if self.board[square + d * i] == 10 or self.board[square + d * i] == 11:
-                            return True
-                        break
-
-            for d in directions[5]: # big daddy king
-                if self.board[square + d * i] == 12:
-                    return True
-
+        
+        # King
+        for d in directions[5]:
+            if self.board[square + d] == (12 - color_to_check * 6):
+                return True
+        
+        # diagonal (Bishop + Queen)
+        for d in directions[3]:
+            for i in range(1,9):
+                if self.board != 0:
+                    if self.board[square + d] == (11 - color_to_check * 6) or self.board[square + d] == (9 - color_to_check * 6):
+                        return True
+                    break
+        
+        # straight (Rook + Queen)
+        for d in directions[4]:
+            for i in range(1,9):
+                if self.board != 0:
+                    if self.board[square + d] == (11 - color_to_check * 6) or self.board[square + d] == (10 - color_to_check * 6):
+                        return True
+                    break
+        
+        # pawns
+        if color_to_check:
+            if self.board[square + S + E] == 1 or self.board[square + S + W] == 1:
+                return True
         else:
-            if self.board[square + S + E] == 7 or self.board[square + S + W] == 7: # pawn
+            if self.board[square + N + E] == 7 or self.board[square + N + W] == 7:
                 return True
-            
-            for d in directions[2]: # horsey
-                if self.board[square + d] == 2:
-                    return True
-                    
-            for d in directions[3]: # bihop
-                for i in range(1,9):
-                    if self.board[square + d * i] != 0:
-                        if self.board[square + d * i] == 3 or self.board[square + d * i] == 5:
-                            return True
-                        break
 
-            for d in directions[4]: # rock + queen
-                for i in range(1,9):
-                    if self.board[square + d * i] != 0:
-                        if self.board[square + d * i] == 4 or self.board[square + d * i] == 5:
-                            return True
-                        break
-
-            for d in directions[5]: # big daddy king
-                if self.board[square + d * i] == 6:
-                    return True
-            
         return False
 
     def gen(self):
         pseudo_legal_moves = list()
-        for piece in self.piece_dict.values():
 
-            if (piece.piece < 7) == self.active_color: # this took me like 30 mins to figure out basic if statement
+        for square, piece in enumerate(self.board):
 
-                # major difference is that pawns move diff based on color, and also promotion rules
-                if piece.piece % 6 == 1:
+            if piece == 0 or piece == 13 or piece > 6 != self.active_color:
+                continue # we don't care about things that aren't pieces
 
-                    pd = N # pawn direction
+            elif piece % 6 == 1:
 
-                    if piece.piece == 1:
-                        pd = N
+                pd = -10 + 20 * self.active_color # pawn direction
 
-                    else:
-                        pd = S
+                for i in [pd + E, pd + W]:
 
-                    if self.board[piece.square + pd] == 0:
+                    print(square)
 
-                        if piece.square + pd // 10 == 9:
-                            for i in range(2,6):
-                                pseudo_legal_moves.append((piece.square, piece.square + pd, not self.active_color * 6 + 2))
-                        else: 
-                            pseudo_legal_moves.append((piece.square, piece.square + pd, piece.piece))
-
-                    if self.board[piece.square + pd + E] != 0 and self.board[piece.square + pd + E] != 13 and not ((self.board[piece.square + pd + E] < 7) == self.active_color):
-                        # i think this should be a capture as well omegalul
-                        pseudo_legal_moves.append((piece.square, piece.square + pd + E, piece.piece))
-
-                    if self.board[piece.square + pd + W] != 0 and self.board[piece.square + pd + W] != 13 and not ((self.board[piece.square + pd + W] < 7) == self.active_color):
-                        pseudo_legal_moves.append((piece.square, piece.square + pd + W, piece.piece))
-
-                    if self.board[piece.square + pd + pd] == 0 and piece.square//10 == 2 and self.board[piece.square + pd] == 0:
-                        pseudo_legal_moves.append((piece.square, piece.square + pd + pd, piece.piece))
-
+                    if self.board[square + i] > 6 or square + i == self.ep:
+                        pseudo_legal_moves.append((square, square + i, piece))
                 
-                # horsey don't slide, and in addition don't care if their paths are being blocked
-                elif piece.piece % 6 == 2:
-                    for d in directions[piece.piece % 6]:
+                if self.board[square + pd] == 0:
+                    if (square // 10 == (8 - 6 * self.active_color)) and self.board[square + pd + pd] == 0:
+                        pseudo_legal_moves.append((square, square + pd + pd, piece)) # move two squares
 
-                        target_dest = piece.square + d
+                    if square // 10 == (80 - 60 * (not self.active_color)):
+                        for i in range(2,6):
+                            pseudo_legal_moves.append((square, square + pd, i))
+                    
+                    else: 
+                        pseudo_legal_moves.append((square, square + pd, piece))
+                
+            elif piece % 6 == 2:
 
-                        if target_dest > 99 or target_dest < 0:
-                            continue
+                for d in directions[2]:
 
-                        if (self.board[target_dest] == 0 or (self.board[target_dest] < 7 == self.active_color)) and self.board[target_dest] != 13:
-                            pseudo_legal_moves.append((piece.square, target_dest, piece.piece))
-        
+                    if square + d > 99 or square + d < 0:
+                        continue
 
+                    if (self.board[square + d] == 0 or self.board[square + d] > 6 == self.active_color) and self.board[square + d] != 13:
+                        pseudo_legal_moves.append((square, square + d, piece))
 
-                # kings have to be able to castle and don't slide
-                # the repo im referencing doesn't check if the king is in check and just plays the move
-                # but that makes it so the comp will have to calculate extra variations
+            elif piece % 6 == 0:
 
-                elif piece.piece % 6 == 0:
+                for d in directions[5]:
+                    if self.board[square + d] == 0 or self.board[square + d] > 6 == self.active_color:
+                        pseudo_legal_moves.append((square, square + d, piece))
 
-                    ks_directions = [E, E + E]
-                    qs_directions = [W, W + W, W + W + W]
+                # king and queenside castling
+                ks_directions = [E, E + E]
+                qs_directions = [W, W + W, W + W + W]
 
-                    square = piece.square
+                can_ks = bool()
+                can_qs = bool()
 
-                    # traditional moves
-                    for d in directions[5]:
+                for d in ks_directions:
+                    can_ks = can_ks and self.is_square_attacked(square + d, not self.active_color)
 
-                        target_dest = square + d
+                for d in qs_directions:
+                    can_qs = can_qs and self.is_square_attacked(square + d, not self.active_color)
 
-                        if self.board[target_dest] == 0: # checking if empty square
-                            pseudo_legal_moves.append((piece.square, target_dest, piece.piece))
-                        elif self.board[target_dest] == 13 or ((self.board[target_dest] < 7) == self.active_color): # checking if out of board or if same piece
-                            # we don't want to bother generating a piece if it overlaps with  
+                if can_ks and self.castling[2 - (2 * self.active_color)]:
+                    pseudo_legal_moves.append((square, square + E + E, piece))
+                
+                if can_qs and self.castling[3 - (2 * self.active_color)]:
+                    pseudo_legal_moves.append((square, square + W + W + W, piece))
+
+            
+            else:
+
+                for d in directions[piece % 6]:
+                    for i in range(1,8):
+
+                        target_dest = square + i * d
+                        
+
+                        if self.board[target_dest] == 0:
+                            #print(self.board[target_dest])
+                            # empty
+                            pseudo_legal_moves.append((square, target_dest, piece))
+                        elif (self.board[target_dest] > 6) != self.active_color or self.board[target_dest] == 13:
                             break
                         else:
-                            # this should be a capture, so that means end the move generation for this piece once you have generated this move
-                            pseudo_legal_moves.append((piece.square, target_dest, piece.piece))
+                            pseudo_legal_moves.append((square, target_dest, piece))
                             break
-
-                    
-                    current_ks = bool()
-                    current_qs = bool()
-                    # need to check for castle
-                    if self.active_color:
-                        current_ks = self.white_ks
-                        current_qs = self.white_qs
-
-                    else: 
-                        current_qs = self.black_qs
-                        current_ks = self.black_ks
-
-                    if current_ks:
-
-                        can_ks = True
-
-                        for d in ks_directions:
-
-                            if self.is_square_attacked(square + d) or self.board[square + d] != 0:
-                                can_ks = False
-                                break
-
-                        if can_ks:
-                            pseudo_legal_moves.append((square, square + E + E, piece.piece))
-
-                    if current_qs:
-                        
-                        can_qs = True
-
-                        for d in qs_directions:
-
-                            if self.is_square_attacked(square + d) or self.board[square + d] != 0:
-                                can_qs = False
-                                break
-
-                        if can_ks:
-                            pseudo_legal_moves.append((square, square + W + W + W, piece.piece))                         
-
-                else:
-                    # sliding pieces over here
-                    for d in directions[piece.piece % 6]:
-                        for i in range(1,9):
-
-                            target_dest = piece.square + i * d
-
-                            if self.board[target_dest] == 0: # checking if empty square
-                                pseudo_legal_moves.append((piece.square, target_dest, piece.piece))
-                            elif self.board[target_dest] == 13 or ((self.board[target_dest] < 7) == self.active_color): # checking if out of board or if same piece
-                                # we don't want to bother generating a piece if it overlaps with  
-                                break
-                            else:
-                                # this should be a capture, so that means end the move generation for this piece once you have generated this move
-                                pseudo_legal_moves.append((piece.square, target_dest, piece.piece))
-                                break
-                                
+              
         return pseudo_legal_moves
 
-    def move(self, move): # the piece would be equal to the promotion value in the case of promotion
+    # use this instead, it creates a duplicate for searching
+    def move(self, move):
+        to_return = self
 
-        start = move[0]
-        end = move [1]
-        piece = move[2]
+        to_return._move(move)
 
+        return to_return
+
+    # don't use this to move piece
+    def _move(self, start, end, piece): # the piece would be equal to the promotion value in the case of promotion
 
         is_pawn_move = bool()
         is_capture = bool()
 
-        if self.active_color:
-            
-            if self.board[start] == 6:
-                self.white_ks = False
-                self.white_qs = False
-            if self.board[start] == 4:
-                if start == 11 and self.white_qs:
-                    self.white_qs = False
-                if start == 18 and self.white_ks:
-                    self.white_ks = False
-        
-        else:
-            if self.board[start] == 12:
-                self.white_ks = False
-                self.white_qs = False
-            if self.board[start] == 10:
-                if start == 11 and self.white_qs:
-                    self.white_qs = False
-                if start == 18 and self.white_ks:
-                    self.white_ks = False
+        if piece % 6 == 0:
+            self.castling[3 - (self.active_color * 2)] = self.castling[2-(self.active_color * 2)] = False
+        if start == (88 - 70 * self.active_color) and self.castling[3-self.active_color * 2]:
+            self.white_qs = False
+        if start == (81 - 70 * self.active_color) and self.castling[2-self.active_color * 2]:
+            self.white_ks = False
+
+        if end == self.ep:
+            self.board[end + 10 - (20 * self.active_color)] = 0
 
         if self.board[start] % 6 == 1:
-
             is_pawn_move = True
-
-            if abs(end - start) == 20:
+            if end - start == 20:
+                self.ep = start + 10
+            elif end - start == -20:
                 self.ep = start - 10
-                
-                if self.board[start] == 1:
-                    self.ep = start + 10
-
-        is_capture = end in self.piece_dict
+            if abs(end - start) == 20:
+                self.ep = start - ((end - start)/2)
 
         self.board[start] = 0
         self.board[end] = piece
-
-        self.piece_dict.pop(start)
-        
-        self.piece_dict[end] = Piece(end, piece)
 
         if not is_capture and not is_pawn_move:
             self.hm += 1
             if not self.active_color:
                 self.fm += 1
-        
-
-        
+    
     def __repr__(self) -> str:
         
         to_return = "\n"
 
         # white pieces look black on when changing between light and dark theme, but gonna assume coders use dark
-        dark_theme = [".", "♟︎", "♞", "♝", "♜", "♛", "♚", "♙", "♘", "♗", "♖", "♕", "♔"]
+        dark_theme = ["·", "♟︎", "♞", "♝", "♜", "♛", "♚", "♙", "♘", "♗", "♖", "♕", "♔"]
 
         piece_counter = 0
 
