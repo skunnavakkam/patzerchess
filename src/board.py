@@ -39,7 +39,7 @@ this makes it so that you can check piece color. x > 6 is black, x < 7 is white
 
 # stuff for generation
 N, S, E, W = 10, -10, -1, 1
-
+A1, H1, A8, H8 = 11, 18, 81, 88
 directions = {
     2: (N + N + W, S + S + W, W + W + S, W + W + N, N + N + E, S + S + E, E + E + S, E + E + N),
     3: (N+W, S+W, N+E, S+E), # bishop
@@ -115,7 +115,6 @@ class Position:
     active_color = bool() # true if w 
     king = None
     pawn_structure = [[0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0]] # [white, black]. each digit maps to a column and counts the number of pawns in that column
-    score = 0
     
     # wc = white castle, bc = black castle, ep = enpassant, hm & fm = half and full move clocks
     def __init__(self, board, active_color, castling, ep, hm, fm):
@@ -294,38 +293,7 @@ class Position:
             self.hm += 1
             if not self.active_color:
                 self.fm += 1
-        
-    # this should be run before you make the move
-    # literally ripped off of sunfish kekw
-    def eval(self, start, end, piece):
-        p, q = self.board[start], self.board[end]
-        pawn_structure = self.pawn_structure
-        score = 0
-
-
-        if p % 6 == 1:
-            pawn_structure[(p - 1)/6][start % 10] -= 1
-        if piece % 6 == 1: # considering promotion
-            pawn_structure[(p-1)/6][end % 10] += 1
-
-        if piece < 7:
-            score = pst[piece][end] - pst[p][start]
-            if q != 0:
-                # capture
-                score += pst[q % 6][99-end]
-        else: 
-            score = pst[piece % 6][99 - end] - pst[p % 6][99 - start]
-
-
-
-
-        
-        # program a check to see if capture by getting the end square and the start square and checking if they're different
-            
-
-
-        
-        
+    
     def __repr__(self) -> str:
         
         to_return = "\n"
