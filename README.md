@@ -28,3 +28,4 @@ Parsefen.py - parsing a fen string in order to convert it into a board represent
 - [Coding Adventure - Chess AI by Sebastian Lague](https://www.youtube.com/watch?v=U4ogK0MIzqk&t=128s)
 - [Chess Alpha Zero - Electric Boogaloo](https://github.com/Zeta36/chess-alpha-zero)
 - [GarbochessJS, using as a way to reference SF](https://github.com/glinscott/Garbochess-JS)
+- [Programming an Advanced Chess Engine - Logic Crazy](https://www.youtube.com/playlist?list=PLQV5mozTHmacMeRzJCW_8K3qw2miYqd0c)
