@@ -48,11 +48,55 @@ directions = {
     5: (N, S, W, E, N+W, S+W, N+E, S+E)
 }
 
-class board:
-    WP = WN = WB = WQ = WK = BP = BN = BB = BQ = BK = 0
+class Position:
+    WP = WN = WB = WR = WQ = WK = BP = BN = BB = BR = BQ = BK = 0
     fm = 0
     hm = 0
     player = 0
+    ep = None
 
-    def __init__(self, fen):
-        
+    def __init__(self, fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"):
+        start_position = (
+        'r','n','b','q','k','b','n','r',
+        'p','p','p','p','p','p','p','p',
+        ' ',' ',' ',' ',' ',' ',' ',' ',
+        ' ',' ',' ',' ',' ',' ',' ',' ',
+        ' ',' ',' ',' ',' ',' ',' ',' ',
+        ' ',' ',' ',' ',' ',' ',' ',' ',
+        'P','P','P','P','P','P','P','P',
+        'R','N','B','Q','K','B','N','R'
+        )
+
+        if fen != "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1":
+            # parse fen here kekw
+            # and set the start position to the parsed fen
+            pass
+
+        for square, piece in enumerate(start_position):
+            if piece == 'r':
+                self.BR += 2 ** square
+            elif piece == 'n':
+                self.BN += 2 ** square
+            elif piece == 'b':
+                self.BB += 2 ** square
+            elif piece == 'q':
+                self.BQ += 2 ** square
+            elif piece == 'k':
+                self.BK += 2 ** square
+            elif piece == 'p':
+                self.BP += 2 ** square
+            elif piece == 'R':
+                self.WR += 2 ** square
+            elif piece == 'N':
+                self.WN += 2 ** square
+            elif piece == 'B':
+                self.WB += 2 ** square
+            elif piece == 'Q':
+                self.WQ += 2 ** square
+            elif piece == 'K':
+                self.WK += 2 ** square
+            elif piece == 'P':
+                self.WP += 2 ** square
+            
+
+            
