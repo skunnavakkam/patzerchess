@@ -53,6 +53,7 @@ class Position:
     fm = 0
     hm = 0
     player = 0
+    castling = ""
     ep = None
 
     def __init__(self, fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"):
@@ -67,36 +68,70 @@ class Position:
         'R','N','B','Q','K','B','N','R'
         )
 
-        if fen != "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1":
-            # parse fen here kekw
-            # and set the start position to the parsed fen
-            pass
-
+        start_position = self.parsefen(fen)
+        
         for square, piece in enumerate(start_position):
             if piece == 'r':
-                self.BR += 2 ** square
+                self.BR ^= 1 << square
             elif piece == 'n':
-                self.BN += 2 ** square
+                self.BN ^= 1 << square
             elif piece == 'b':
-                self.BB += 2 ** square
+                self.BB ^= 1 << square
             elif piece == 'q':
-                self.BQ += 2 ** square
+                self.BQ ^= 1 << square
             elif piece == 'k':
-                self.BK += 2 ** square
+                self.BK ^= 1 << square
             elif piece == 'p':
-                self.BP += 2 ** square
+                self.BP ^= 1 << square
             elif piece == 'R':
-                self.WR += 2 ** square
+                self.WR ^= 1 << square
             elif piece == 'N':
-                self.WN += 2 ** square
+                self.WN ^= 1 << square
             elif piece == 'B':
-                self.WB += 2 ** square
+                self.WB ^= 1 << square
             elif piece == 'Q':
-                self.WQ += 2 ** square
+                self.WQ ^= 1 << square
             elif piece == 'K':
-                self.WK += 2 ** square
+                self.WK ^= 1 << square
             elif piece == 'P':
-                self.WP += 2 ** square
+                self.WP ^= 1 << square
+
+    def parsefen(self, fen):
+        
+        position = []
+
+        if fen == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1":
+            position = (
+            'r','n','b','q','k','b','n','r',
+            'p','p','p','p','p','p','p','p',
+            ' ',' ',' ',' ',' ',' ',' ',' ',
+            ' ',' ',' ',' ',' ',' ',' ',' ',
+            ' ',' ',' ',' ',' ',' ',' ',' ',
+            ' ',' ',' ',' ',' ',' ',' ',' ',
+            'P','P','P','P','P','P','P','P',
+            'R','N','B','Q','K','B','N','R'
+            )
+            return position
+        
+        elements = fen.split(' ')
+        pieces = elements[0]
+
+        for i in pieces:
+            if i == "/":
+                continue
+
+            elif i.isdigit():
+                for m in range(int(i)):
+                    position.append(' ')
+
+            else:
+                position.append(i)
+
+        return(tuple(position))
+            
+
+
+        
             
 
             
