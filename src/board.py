@@ -64,13 +64,18 @@ class Position:
         for row in pieces.split('/'):
             for piece in row:
                 if piece.isdigit():
-                    self.board.extend([0] * int(piece))
+                    self.board.extend((0) * int(piece))
                 
                 else:
                     self.board.append(piece_dict[piece])
             
-            self.board.extend([15] * 8)
+            self.board.extend((15) * 8)
     
         print(len(self.board))
 
-                
+    def _isattacked(self, square) -> bool:
+        pass
+
+    def gen(self) -> list:
+        for piece, square in enumerate(self.board):
+            
