@@ -2,16 +2,17 @@
 # Sudarshanagopal Kunnavakkam 8 September 2021
 # try no to steal my code please
 # i really reccomend you have rainbow brackets or smth similar installed
+# im so tempted to make everything bitwise, but i also want people to be able to read my code
 
 '''
     White   Black
 
 P   0001    1001
 N   0010    1010
-B   0011    1011
-R   0100    1100
-Q   0101    1101
-K   0110    1110
+K   0011    1011
+B   0100    1100
+R   0101    1101
+Q   0110    1110
 
 empty = 0000
 
@@ -29,6 +30,25 @@ if (X ^ Y) < 1000
 
 
 '''
+
+N, S, E, W = -10, 10, 1, -1
+directions = {
+    1:(N,), # p (just having the pawns direction here, and going to handle pawns later)
+    2:(N+N+E, E+N+E, E+S+E, S+S+E, S+S+W, W+S+W, W+N+W, N+N+W), # n
+    3:(N, E, S, W, N+E, S+E, S+W, N+W), # k
+    4:(N+E, S+E, S+W, N+W), # b
+    5:(N, E, S, W), # r
+    6:(N, E, S, W, N+E, S+E, S+W, N+W), # q
+    9:(S,),
+    10:(N+N+E, E+N+E, E+S+E, S+S+E, S+S+W, W+S+W, W+N+W, N+N+W),
+    11:(N, E, S, W, N+E, S+E, S+W, N+W),
+    12:(N+E, S+E, S+W, N+W),
+    13:(N, E, S, W),
+    14:(N, E, S, W, N+E, S+E, S+W, N+W)
+} # probably inefficient use of memory but idc about the computer
+is_sliding_piece = lambda x: (x & 0b0111) > 3 # more efficient mod operator, also im trying to flex
+
+
 
 class Position:
 
@@ -59,23 +79,58 @@ class Position:
         self.hm = int(hm)
         self.ep = ep if ep != '-' else None
 
-        piece_dict = {'P':1,'N':2,'B':3,'R':4,'Q':5,'K':6,'p':9,'n':10,'b':11,'r':12,'q':13,'k':14}
+        piece_dict = {'P':1,'N':2,'K':3,'B':4,'R':5,'Q':6,'p':9,'n':10,'k':11,'b':12,'r':13,'q':14}
 
         for row in pieces.split('/'):
             for piece in row:
                 if piece.isdigit():
-                    self.board.extend((0) * int(piece))
+                    self.board.extend([0] * int(piece))
                 
                 else:
                     self.board.append(piece_dict[piece])
             
-            self.board.extend((15) * 8)
+            self.board.extend([15] * 8)
     
         print(len(self.board))
 
     def _isattacked(self, square) -> bool:
         pass
 
-    def gen(self) -> list:
-        for piece, square in enumerate(self.board):
-            
+    def _gen(self) -> tuple:
+
+        pseudo_legal_moves = list()
+        captures = list()
+
+        for square, piece in enumerate(self.board): # i can't really save both my sanity and the time that it takes to go over blank squares so im sacrificng some efficieny
+                        
+            if piece == 0 or piece == 15:
+                continue # continues if its 0 or 15
+
+            for d in directions[piece]:
+                for i in range(1,8):
+
+                    if (square + d * i) & 0x88: 
+                        break # out of bounds, don't have to table lookup
+
+                     # we wnat to try to avoid lookup
+                    target_square = square + d * i
+                    target_destination = self.board[target_square]
+
+                    if (piece ^ target_destination) >= 8: # i think this should be a catpurr
+                        captures.append((square, target_square, piece))
+                        break
+
+                    elif target_destination == 0: # i think this should be an empty square
+                        if piece == 1 or piece == 9:
+                            if piece < 0x10 or piece > 0x67:
+                                pseudo_legal_moves.append((square, target_square, 0b0010 + (piece & 1000)))
+                                pseudo_legal_moves.append((square, target_square, 0b0100 + (piece & 1000)))
+                                pseudo_legal_moves.append((square, target_square, 0b0101 + (piece & 1000)))
+                                pseudo_legal_moves.append((square, target_square, 0b0110 + (piece & 1000)))
+                        else:
+                            pseudo_legal_moves.append((square, target_square, piece))
+
+                    if not is_sliding_piece(piece):
+                        break
+
+        return (captures, pseudo_legal_moves)
