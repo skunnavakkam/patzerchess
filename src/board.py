@@ -52,7 +52,7 @@ is_sliding_piece = lambda x: (x & 0b0111) > 3 # more efficient mod operator, als
 
 class Position:
 
-    board=[]
+    bitboards=[0] * 12
     is_white = True
     hm = 0
     fm = 0
@@ -66,12 +66,13 @@ class Position:
     def __init__(self,fen='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'):
 
         elements = fen.split(' ')
-        pieces = elements[0]
+        piece_list = elements[0].replace('/','')
         color = elements[1]
         castling = elements[2]
         ep = elements[3]
         fm = elements[5]
         hm = elements[4]
+        piece_string = str()
 
         self.is_white = (color == 'w')
         self.cwk, self.cwq, self.cbk, self.cbq = 'K' in castling, 'Q' in castling, 'k' in castling, 'q' in castling
@@ -79,58 +80,22 @@ class Position:
         self.hm = int(hm)
         self.ep = ep if ep != '-' else None
 
-        piece_dict = {'P':1,'N':2,'K':3,'B':4,'R':5,'Q':6,'p':9,'n':10,'k':11,'b':12,'r':13,'q':14}
+        piece_dict = {'P':0,'N':1,'K':2,'B':3,'R':4,'Q':5,'p':6,'n':7,'k':8,'b':9,'r':10,'q':11}
 
-        for row in pieces.split('/'):
-            for piece in row:
-                if piece.isdigit():
-                    self.board.extend([0] * int(piece))
-                
-                else:
-                    self.board.append(piece_dict[piece])
+        for piece in piece_list:
+            if piece.isdigit():
+                piece_string += ' ' * int(piece)
+            else:
+                piece_string += piece
+
+
+        for square, piece in enumerate(piece_string):
+            if piece != ' ':
+                self.bitboards[piece_dict[piece]] ^= 1 << square
+
+    def _gen(self):
+
+        for piece,board in enumerate(self.bitboards):
             
-            self.board.extend([15] * 8)
-    
-        print(len(self.board))
-
-    def _isattacked(self, square) -> bool:
-        pass
-
-    def _gen(self) -> tuple:
-
-        pseudo_legal_moves = list()
-        captures = list()
-
-        for square, piece in enumerate(self.board): # i can't really save both my sanity and the time that it takes to go over blank squares so im sacrificng some efficieny
-                        
-            if piece == 0 or piece == 15:
-                continue # continues if its 0 or 15
-
-            for d in directions[piece]:
-                for i in range(1,8):
-
-                    if (square + d * i) & 0x88: 
-                        break # out of bounds, don't have to table lookup
-
-                     # we wnat to try to avoid lookup
-                    target_square = square + d * i
-                    target_destination = self.board[target_square]
-
-                    if (piece ^ target_destination) >= 8: # i think this should be a catpurr
-                        captures.append((square, target_square, piece))
-                        break
-
-                    elif target_destination == 0: # i think this should be an empty square
-                        if piece == 1 or piece == 9:
-                            if piece < 0x10 or piece > 0x67:
-                                pseudo_legal_moves.append((square, target_square, 0b0010 + (piece & 1000)))
-                                pseudo_legal_moves.append((square, target_square, 0b0100 + (piece & 1000)))
-                                pseudo_legal_moves.append((square, target_square, 0b0101 + (piece & 1000)))
-                                pseudo_legal_moves.append((square, target_square, 0b0110 + (piece & 1000)))
-                        else:
-                            pseudo_legal_moves.append((square, target_square, piece))
-
-                    if not is_sliding_piece(piece):
-                        break
-
-        return (captures, pseudo_legal_moves)
+            if board == 0:
+                continue
