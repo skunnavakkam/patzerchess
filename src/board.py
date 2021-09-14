@@ -5,30 +5,13 @@
 # im so tempted to make everything bitwise, but i also want people to be able to read my code
 
 '''
-    White   Black
-
-P   0001    1001
-N   0010    1010
-K   0011    1011
-B   0100    1100
-R   0101    1101
-Q   0110    1110
-
-empty = 0000
-
-X = Piece
-Y = Target
-
-capture:
-if (X ^ Y) > 1000
-
-empty:
-if (X ^ Y) == X
-
-own piece:
-if (X ^ Y) < 1000
-
-
+noWe         nort         noEa
+        -9    -8    -7
+            \  |  /
+west    -1 <-  0 -> +1    east
+            /  |  \
+        +7    +8    +9
+soWe         sout         soEa
 '''
 
 N, S, E, W = -10, 10, 1, -1
@@ -52,7 +35,9 @@ is_sliding_piece = lambda x: (x & 0b0111) > 3 # more efficient mod operator, als
 
 class Position:
 
-    bitboards=[0] * 12
+    WP = WN = WB = WR = WQ = WK = BP = BN = BB = BR = BQ = BK = 0
+    black_board = 0 # storing these values to make checking for moves and things easier
+    white_board = 0 # not sure if this is necessary though
     is_white = True
     hm = 0
     fm = 0
@@ -88,14 +73,60 @@ class Position:
             else:
                 piece_string += piece
 
-
         for square, piece in enumerate(piece_string):
             if piece != ' ':
-                self.bitboards[piece_dict[piece]] ^= 1 << square
 
-    def _gen(self):
 
-        for piece,board in enumerate(self.bitboards):
-            
-            if board == 0:
-                continue
+                if piece == 'P':
+                    self.WP ^= 1 << square
+                if piece == 'N':
+                    self.WN ^= 1 << square
+                if piece == 'B':
+                    self.WB ^= 1 << square
+                if piece == 'R':
+                    self.WR ^= 1 << square
+                if piece == 'Q':
+                    self.WQ ^= 1 << square
+                if piece == 'K':
+                    self.WK ^= 1 << square
+
+
+                if piece == 'p':
+                    self.BP ^= 1 << square
+                if piece == 'n':
+                    self.BN ^= 1 << square
+                if piece == 'b':
+                    self.BB ^= 1 << square
+                if piece == 'r':
+                    self.BR ^= 1 << square
+                if piece == 'q':
+                    self.BQ ^= 1 << square
+                if piece == 'k':
+                    self.BK ^= 1 << square
+
+
+                if piece.isupper():
+                    self.white_board ^= 1 << square
+                else:
+                    self.black_board ^= 1 << square
+
+    def _gen_out_of_check(self):
+        
+        N = -8
+        S = 8
+        E = 1
+        W = -1
+        NE = N + E
+        NW = N + W
+        SE = S + E
+        NOT_A = 0b1111111011111110111111101111111011111110111111101111111011111110
+        NOT_H = 0b0111111101111111011111110111111101111111011111110111111101111111
+        RANK2 = 0b0000000011111111000000000000000000000000000000000000000000000000
+        RANK7 = 0b0000000000000000000000000000000000000000000000001111111100000000
+
+        if self.WP:
+
+
+            single_move = (self.WP << N) & ~self.black_board
+            pawn_attacks = (  ((self.WP << NE) & NOT_H)  |  ((self.WP << NW) & NOT_A)  ) & self.black_board # fuck enpassant
+
