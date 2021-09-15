@@ -121,12 +121,15 @@ class Position:
         SE = S + E
         NOT_A = 0b1111111011111110111111101111111011111110111111101111111011111110
         NOT_H = 0b0111111101111111011111110111111101111111011111110111111101111111
-        RANK2 = 0b0000000011111111000000000000000000000000000000000000000000000000
-        RANK7 = 0b0000000000000000000000000000000000000000000000001111111100000000
+        RANK3 = 0b0000000000000000111111110000000000000000000000000000000000000000
+        RANK7 = 0b0000000000000000000000000000000000000000111111110000000000000000
 
         if self.WP:
 
+            single_move = (self.WP >> 8) & ~self.black_board
+            pawn_attacks = (  ((self.WP >> 7) & NOT_H)  |  ((self.WP >> 9) & NOT_A)  ) & self.black_board # fuck enpassant
+            double_move = ((single_move & RANK3) >> 8) & ~self.black_board # shifting pawns from the second rank one square in single_move, and another in double_move
 
-            single_move = (self.WP << N) & ~self.black_board
-            pawn_attacks = (  ((self.WP << NE) & NOT_H)  |  ((self.WP << NW) & NOT_A)  ) & self.black_board # fuck enpassant
+        
+
 
