@@ -130,6 +130,7 @@ class Position:
             pawn_attacks = (  ((self.WP >> 7) & NOT_H)  |  ((self.WP >> 9) & NOT_A)  ) & self.black_board # fuck enpassant
             double_move = ((single_move & RANK3) >> 8) & ~self.black_board # shifting pawns from the second rank one square in single_move, and another in double_move
 
-        
+        if self.WN:
+            pass
 
 
