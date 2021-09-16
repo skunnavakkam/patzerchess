@@ -1,9 +1,11 @@
-from board import Position
-
 def main():
-    board = Position()
 
-    print(as_board(board.WQ))
+    from board import Position
+    from time import time
+
+    board = Position('K6k/8/8/8/8/8/8/8 w - - 0 1')
+
+
 
 def as_board(bitboard):
     return_string = ""

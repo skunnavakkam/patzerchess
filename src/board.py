@@ -110,6 +110,17 @@ class Position:
                 else:
                     self.black_board ^= 1 << square
 
+    # just a debugging tool that allows me to print a bit board as a chess board
+    def as_board(self, bitboard):
+        return_string = ""
+        bb = bin(bitboard)[2:][::-1]
+        for square, bit in enumerate( (bb + ((64 - len(bb)) * "0")) ):
+            return_string += bit
+            return_string += " "
+            if square % 8 == 7:
+                return_string += "\n"
+        return return_string
+
     def _gen_out_of_check(self):
         
         N = -8
@@ -119,18 +130,58 @@ class Position:
         NE = N + E
         NW = N + W
         SE = S + E
-        NOT_A = 0b1111111011111110111111101111111011111110111111101111111011111110
-        NOT_H = 0b0111111101111111011111110111111101111111011111110111111101111111
-        RANK3 = 0b0000000000000000111111110000000000000000000000000000000000000000
-        RANK7 = 0b0000000000000000000000000000000000000000111111110000000000000000
+        
+        # general masks
+        NOT_A  = 0b1111111011111110111111101111111011111110111111101111111011111110
+        NOT_H  = 0b0111111101111111011111110111111101111111011111110111111101111111
+        NOT_1  = 0b1111111111111111111111111111111111111111111111111111111100000000
+        NOT_8 = 0b0000000011111111111111111111111111111111111111111111111111111111
+        
+
+        # pawn masks
+        RANK3  = 0b0000000000000000111111110000000000000000000000000000000000000000
+        RANK6  = 0b0000000000000000000000000000000000000000111111110000000000000000
+
+        # knight masks
+        NOT_AB = 0b1111110011111100111111001111110011111100111111001111110011111100
+        NOT_GH = 0b0011111100111111001111110011111100111111001111110011111100111111
+                
+        WB_board = self.black_board | self.white_board
+        WB_board_flip = ~WB_board
+        white_board_flip = ~self.white_board
+        black_board_flip = ~self.black_board
 
         if self.WP:
 
-            single_move = (self.WP >> 8) & ~self.black_board
-            pawn_attacks = (  ((self.WP >> 7) & NOT_H)  |  ((self.WP >> 9) & NOT_A)  ) & self.black_board # fuck enpassant
-            double_move = ((single_move & RANK3) >> 8) & ~self.black_board # shifting pawns from the second rank one square in single_move, and another in double_move
+            single_move = (self.WP >> 8) & WB_board_flip
+            pawn_attacks = ((self.WP & NOT_H) >> 7) | ((self.WP & NOT_A) >> 9)
+            double_move = ((single_move & RANK3) >> 8) & WB_board
+            pawn_captures = pawn_attacks & self.black_board
 
         if self.WN:
-            pass
+            # variables named as 
+            # 2 move direction 1 move direction
+            # moving two squares N and 1 square E would be NE
+        
+            NE_moves = (self.WN >> 15) & NOT_A & white_board_flip
+            NW_moves = (self.WN >> 17) & NOT_H & white_board_flip
+            
+            EN_moves = (self.WN >> 6) & NOT_AB & white_board_flip
+            ES_moves = (self.WN << 10) & NOT_AB & white_board_flip
 
+            SE_moves = (self.WN << 17) & NOT_A & white_board_flip
+            SW_moves = (self.WN << 15) & NOT_H & white_board_flip
 
+            WN_moves = (self.WN >> 10) & NOT_GH & white_board_flip
+            WS_moves = (self.WN << 6) & NOT_GH & white_board_flip
+
+            knight_moves = NE_moves | NW_moves | EN_moves | ES_moves \
+                            | SE_moves | SW_moves | WN_moves | WS_moves
+        if self.WK:
+            
+            # this is super spaghetti but it just bitshifts for all 8 directions
+
+            king_moves = (((self.WK & NOT_1) >> 7) & NOT_A) | (((self.WK & NOT_1) >> 8)) | \
+                            (((self.WK & NOT_1) >> 9) & NOT_H) | ((self.WK >> 1) & NOT_H) | \
+                            ((self.WK << 1) & NOT_A) | (((self.WK & NOT_8) << 7) & NOT_H) | \
+                            (((self.WK & NOT_8) << 8)) | (((self.WK & NOT_8) << 9) & NOT_A)
