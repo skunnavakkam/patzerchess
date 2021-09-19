@@ -135,8 +135,7 @@ class Position:
         NOT_A  = 0b1111111011111110111111101111111011111110111111101111111011111110
         NOT_H  = 0b0111111101111111011111110111111101111111011111110111111101111111
         NOT_1  = 0b1111111111111111111111111111111111111111111111111111111100000000
-        NOT_8 = 0b0000000011111111111111111111111111111111111111111111111111111111
-        
+        NOT_8  = 0b0000000011111111111111111111111111111111111111111111111111111111
 
         # pawn masks
         RANK3  = 0b0000000000000000111111110000000000000000000000000000000000000000
@@ -145,17 +144,18 @@ class Position:
         # knight masks
         NOT_AB = 0b1111110011111100111111001111110011111100111111001111110011111100
         NOT_GH = 0b0011111100111111001111110011111100111111001111110011111100111111
-                
+
         WB_board = self.black_board | self.white_board
         WB_board_flip = ~WB_board
         white_board_flip = ~self.white_board
         black_board_flip = ~self.black_board
 
+
         if self.WP:
 
             single_move = (self.WP >> 8) & WB_board_flip
             pawn_attacks = ((self.WP & NOT_H) >> 7) | ((self.WP & NOT_A) >> 9)
-            double_move = ((single_move & RANK3) >> 8) & WB_board
+            double_move = ((single_move & RANK3) >> 8) & WB_board_flip
             pawn_captures = pawn_attacks & self.black_board
 
         if self.WN:
@@ -179,9 +179,36 @@ class Position:
                             | SE_moves | SW_moves | WN_moves | WS_moves
         if self.WK:
             
-            # this is super spaghetti but it just bitshifts for all 8 directions
+            E_move = (self.WK << 1) & NOT_A
+            W_move = (self.WK >> 1) & NOT_H
 
-            king_moves = (((self.WK & NOT_1) >> 7) & NOT_A) | (((self.WK & NOT_1) >> 8)) | \
-                            (((self.WK & NOT_1) >> 9) & NOT_H) | ((self.WK >> 1) & NOT_H) | \
-                            ((self.WK << 1) & NOT_A) | (((self.WK & NOT_8) << 7) & NOT_H) | \
-                            (((self.WK & NOT_8) << 8)) | (((self.WK & NOT_8) << 9) & NOT_A)
+            king_horizontal = E_move | self.WK | W_move
+
+            king_moves = ((king_horizontal & NOT_8) << 8) | E_move | W_move | ((king_horizontal & NOT_1) >> 8)
+
+
+        # --------------------------------------Sliding Pieces--------------------------------------      
+
+        mod8 = lambda x: x & 0b111
+        file_mask = (0x101010101010101, 0x202020202020202, 0x404040404040404, 0x808080808080808,
+                    0x1010101010101010, 0x2020202020202020, 0x4040404040404040, 0x8080808080808080)
+        rank_mask = (0xFF00000000000000, 0xFF000000000000, 0xFF0000000000, 0xFF00000000, 
+                    0xFF000000, 0xFF0000, 0xFF00, 0xFF)
+        # trying to avoid looking up these tuples
+        # fuckkkkk i need to do a lookup table
+
+        if self.WR:
+            
+            rank_moves = 0b0
+
+            for i in range(8):
+                r = rank_mask[i]
+                s = self.WR & r
+
+                if s:
+
+                    o = WB_board & r
+
+                    moves = (o ^ (o - 2 * s)) & r
+
+                    rank_moves |= moves
