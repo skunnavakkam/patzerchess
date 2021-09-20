@@ -1,3 +1,8 @@
 py-src/test.py
 py-src/__pycache__
 py-src/board.pyc
+
+
+# Added by cargo
+
+/target

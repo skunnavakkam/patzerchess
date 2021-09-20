@@ -199,16 +199,33 @@ class Position:
 
         if self.WR:
             
-            rank_moves = 0b0
+            rank_moves = 0
+            file_moves = 0
 
             for i in range(8):
                 r = rank_mask[i]
-                s = self.WR & r
+                f = file_mask[i]
 
-                if s:
+                file_slider = self.WR & r
+                rank_slider = self.WR & f
+
+                print(self.as_board(f), i)
+
+                if rank_slider:
 
                     o = WB_board & r
 
-                    moves = (o ^ (o - 2 * s)) & r
+                    moves = ((o - 2 * rank_slider)) & r
 
                     rank_moves |= moves
+
+                if file_slider:
+
+                    o = WB_board & f
+
+                    moves = (o-2 * file_slider) & f
+
+                    file_moves |= moves
+                
+            rank_moves ^= WB_board
+            file_moves ^= WB_board
