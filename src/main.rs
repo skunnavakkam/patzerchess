@@ -110,6 +110,7 @@ impl Position {
         //general masks
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+        let not_1 = 0b1111111100000000000000000000000000000000000000000000000000000000u64;
 
         // pawn masks
         let rank3 = 0b0000000000000000111111110000000000000000000000000000000000000000u64;
@@ -120,8 +121,9 @@ impl Position {
         let not_gh = 0b0011111100111111001111110011111100111111001111110011111100111111u64;
 
         let wb_board = self.black_board | self.white_board;
-        let wb_board_flip = wb_board ^ wb_board;
-        let white_board_flip = self.white_board ^ self.white_board;
+        let wb_board_flip = !wb_board;
+        let white_board_flip = !self.white_board;
+        let black_board_flip = !self.black_board;
 
         if self.wp != 0 {
             let single_move = (self.wp >> 8) & wb_board_flip;
@@ -161,64 +163,37 @@ impl Position {
 
             let horizontal = e_move | self.wk | w_move;
             let king_moves: u64 = ((horizontal) << 8) | e_move | w_move | (horizontal >> 8);
-
-            println!("hello!");
-            println!("{}", self.print_pretty(king_moves));
         }
 
         // --------------------------------------Sliding Pieces--------------------------------------
 
-        let file_mask: [u64; 8] = [
-            0x101010101010101,
-            0x202020202020202,
-            0x404040404040404,
-            0x808080808080808,
-            0x1010101010101010,
-            0x2020202020202020,
-            0x4040404040404040,
-            0x8080808080808080,
-        ];
-        let rank_mask: [u64; 8] = [
-            0xFF00000000000000,
-            0xFF000000000000,
-            0xFF0000000000,
-            0xFF00000000,
-            0xFF000000,
-            0xFF0000,
-            0xFF00,
-            0xFF,
-        ];
-
         if self.wr != 0 {
-            let mut rank_moves: u64 = 0;
-            let mut file_moves: u64 = 0;
+            let mut moves = 0;
+            let mut wr_west = self.wr;
+            let mut wr_east = self.wr;
+            let mut wr_north = self.wr;
+            let mut wr_south = self.wr;
 
-            for i in 0..8 {
-                let r = rank_mask[i];
-                let f = file_mask[i];
+            for _ in 1..8 {
+                // seperate iterations for each direction
+                wr_west = ((wr_west & not_h) >> 1) & white_board_flip;
+                wr_east = ((wr_east & not_a) << 1) & white_board_flip;
+                wr_north = (wr_north >> 8) & white_board_flip;
+                wr_south = ((wr_south & not_1) << 8) & white_board_flip;
 
-                let file_slider = self.wr & r;
-                let rank_slider = self.wr & f;
+                moves = moves | wr_west | wr_east | wr_north | wr_south;
 
-                if rank_slider != 0 {
-                    let occupied_rank = wb_board & r;
+                wr_south &= black_board_flip;
+                wr_north &= black_board_flip;
+                wr_east &= black_board_flip;
+                wr_west &= black_board_flip;
 
-                    let moves = (occupied_rank - 2 * rank_slider) & r;
-
-                    rank_moves |= moves;
+                if (wr_north + wr_south + wr_east + wr_north) == 0 {
+                    break;
                 }
-
-                if file_slider != 0 {
-                    let occupied_file = wb_board & f;
-
-                    let moves = (occupied_file - (file_slider << 1)) & r;
-
-                    file_moves |= moves;
-                }
-
-                rank_moves ^= wb_board;
-                file_moves ^= wb_board;
             }
+
+            println!("{}", moves)
         }
     }
 }
