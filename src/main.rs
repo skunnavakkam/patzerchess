@@ -53,31 +53,31 @@ impl Position {
 
         for (square, piece) in piece_string.chars().enumerate() {
             if piece == 'P' {
-                self.wp ^= 1 << square;
+                self.boards[0] ^= 1 << square;
             } else if piece == 'N' {
-                self.wn ^= 1 << square;
+                self.boards[1] ^= 1 << square;
             } else if piece == 'B' {
-                self.wb ^= 1 << square;
+                self.boards[2] ^= 1 << square;
             } else if piece == 'R' {
-                self.wr ^= 1 << square;
+                self.boards[3] ^= 1 << square;
             } else if piece == 'Q' {
-                self.wq ^= 1 << square;
+                self.boards[4] ^= 1 << square;
             } else if piece == 'K' {
-                self.wk ^= 1 << square;
+                self.boards[5] ^= 1 << square;
             }
 
             if piece == 'p' {
-                self.bp ^= 1 << square;
+                self.boards[6] ^= 1 << square;
             } else if piece == 'n' {
-                self.bn ^= 1 << square;
+                self.boards[7] ^= 1 << square;
             } else if piece == 'b' {
-                self.bb ^= 1 << square;
+                self.boards[8] ^= 1 << square;
             } else if piece == 'r' {
-                self.br ^= 1 << square;
+                self.boards[9] ^= 1 << square;
             } else if piece == 'q' {
-                self.bq ^= 1 << square;
+                self.boards[10] ^= 1 << square;
             } else if piece == 'k' {
-                self.bk ^= 1 << square;
+                self.boards[11] ^= 1 << square;
             }
 
             if (piece >= 'A') & (piece != ' ') {
@@ -129,14 +129,14 @@ impl Position {
 
         // generate
         if self.is_white {
-            if self.wp != 0 {
+            if self.boards[0] != 0 {
                 let single_move = (self.wp >> 8) & wb_board_flip;
                 let pawn_attacks = ((self.wp & not_h) >> 7) | ((self.wp & not_a) >> 9);
                 let double_move = ((single_move & rank3) >> 8) & wb_board_flip;
                 let pawn_captures = pawn_attacks & self.black_board;
             }
 
-            if self.wn != 0 {
+            if self.boards[1] != 0 {
                 // variables named as
                 // 2 move direction 1 move direction
                 // moving two squares N and 1 square E would be NE
@@ -161,7 +161,7 @@ impl Position {
                     | ws_moves;
             }
 
-            if self.wk != 0 {
+            if self.boards[5] != 0 {
                 let e_move = (self.wk << 1) & not_a;
                 let w_move = (self.wk >> 1) & not_h;
 
@@ -171,7 +171,7 @@ impl Position {
 
             // --------------------------------------Sliding Pieces--------------------------------------
 
-            if self.wr != 0 {
+            if self.boards[3] != 0 {
                 let mut moves = 0;
                 let mut wr_west = self.wr;
                 let mut wr_east = self.wr;
@@ -198,7 +198,7 @@ impl Position {
                 }
             }
 
-            if self.wq != 0 {
+            if self.boards[4] != 0 {
                 let mut moves = 0;
                 let mut wq_west = self.wq;
                 let mut wq_east = self.wq;
@@ -249,7 +249,7 @@ impl Position {
                 println!("{}", self.print_pretty(moves))
             }
 
-            if self.wb != 0 {
+            if self.boards[2] != 0 {
                 let mut moves = 0;
                 let mut wb_ne = self.wb;
                 let mut wb_nw = self.wb;
@@ -279,14 +279,14 @@ impl Position {
             }
         } else {
             // black
-            if self.bp != 0 {
+            if self.boards[6] != 0 {
                 let single_move = (self.wp << 8) & wb_board_flip;
                 let pawn_attacks = ((self.wp & not_h) << 7) | ((self.wp & not_a) << 9);
                 let double_move = ((single_move & rank3) << 8) & wb_board_flip;
                 let pawn_captures = pawn_attacks & self.white_board;
             }
 
-            if self.bn != 0 {
+            if self.boards[7] != 0 {
                 // variables named as
                 // 2 move direction 1 move direction
                 // moving two squares N and 1 square E would be NE
@@ -311,7 +311,7 @@ impl Position {
                     | ws_moves;
             }
 
-            if self.bk != 0 {
+            if self.boards[11] != 0 {
                 let e_move = (self.bk << 1) & not_a;
                 let w_move = (self.bk >> 1) & not_h;
 
@@ -321,7 +321,7 @@ impl Position {
 
             // --------------------------------------Sliding Pieces--------------------------------------
 
-            if self.br != 0 {
+            if self.boards[9] != 0 {
                 let mut moves = 0;
                 let mut br_west = self.br;
                 let mut br_east = self.br;
@@ -348,7 +348,7 @@ impl Position {
                 }
             }
 
-            if self.bq != 0 {
+            if self.boards[10] != 0 {
                 let mut moves = 0;
                 let mut bq_west = self.bq;
                 let mut bq_east = self.bq;
@@ -397,7 +397,7 @@ impl Position {
                 }
             }
 
-            if self.bb != 0 {
+            if self.boards[8] != 0 {
                 let mut moves = 0;
                 let mut bb_ne = self.bb;
                 let mut bb_nw = self.bb;
@@ -426,10 +426,19 @@ impl Position {
         }
     }
 
-    fn make(&mut self, from: u64, to: u64, is_capture: bool, start_board: u8, end_board: u8) {
+    fn make(&mut self, from: u64, to: u64, is_capture: bool, start_board: u8, captured_board: u8) {
         if is_capture {
             // handle capture
+            
         } else {
+            // not a capture
+            from_to_bb = from ^ to
+            self.boards[start_board] = self.boards[start_board] ^ from_to_bb;
+            if start_board > 5 {
+                self.black_board = self.black_board ^ from_to_bb;
+            } else {
+                self.white_board = self.white_board ^ from_to_bb;
+            }
         }
     }
 }
