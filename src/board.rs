@@ -1,25 +1,14 @@
 #[derive(Debug, Default)]
 pub struct Position {
-    wp: u64,
-    wn: u64,
-    wb: u64,
-    wr: u64,
-    wq: u64,
-    wk: u64,
-    bp: u64,
-    bn: u64,
-    bb: u64,
-    br: u64,
-    bq: u64,
-    bk: u64,
-    boards: [u64; 12],
-    black_board: u64,
-    white_board: u64,
-    castling: [bool; 4],
-    ep: u8,
-    fm: u8,
-    hm: u8,
-    is_white: bool,
+    pub boards: [u64; 12],
+    pub black_board: u64,
+    pub white_board: u64,
+    pub occupied: u64,
+    pub castling: [bool; 4],
+    pub ep: u8,
+    pub fm: u8,
+    pub hm: u8,
+    pub is_white: bool,
 }
 
 impl Position {
@@ -86,6 +75,8 @@ impl Position {
                 self.black_board ^= 1 << square;
             }
         }
+
+        self.occupied = self.white_board | self.black_board;
     }
 
     // don't have to worry about efficieny here as well
@@ -108,343 +99,378 @@ impl Position {
         return string_to_print;
     }
 
-    pub fn _gen_out_of_check(&self) {
-        //general masks
+    pub fn WP_gen(&self, input: u64) -> u64 {
+        if input != 0 {
+            let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+            let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+            let rank3 = 0b0000000000000000111111110000000000000000000000000000000000000000u64;
+
+            let single_move = (input >> 8) & !self.occupied;
+            let pawn_attacks = ((input & not_h) >> 7) | ((input & not_a) >> 9);
+            let double_move = ((single_move & rank3) >> 8) & !self.occupied;
+            let pawn_captures = pawn_attacks & self.black_board;
+
+            return double_move | single_move | pawn_captures;
+        }
+        return 0u64;
+    }
+
+    pub fn WN_gen(&self, input: u64) -> u64 {
+        if input != 0 {
+            // masks
+            let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+            let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+            let not_ab = 0b1111110011111100111111001111110011111100111111001111110011111100u64;
+            let not_gh = 0b0011111100111111001111110011111100111111001111110011111100111111u64;
+
+            // variables named as
+            // 2 move direction 1 move direction
+            // moving two squares N and 1 square E would be NE
+            let ne_moves = (input >> 15) & not_a & !self.white_board;
+            let nw_moves = (input >> 17) & not_h & !self.white_board;
+            let en_moves = (input >> 6) & not_ab & !self.white_board;
+            let es_moves = (input << 10) & not_ab & !self.white_board;
+
+            let se_moves = (input << 17) & not_a & !self.white_board;
+            let sw_moves = (input << 15) & not_h & !self.white_board;
+
+            let wn_moves = (input >> 10) & not_gh & !self.white_board;
+            let ws_moves = (input << 6) & not_gh & !self.white_board;
+
+            return ne_moves
+                | nw_moves
+                | en_moves
+                | es_moves
+                | se_moves
+                | sw_moves
+                | wn_moves
+                | ws_moves;
+        }
+
+        return 0;
+    }
+
+    pub fn WK_gen(&self, input: u64) -> u64 {
+        if input != 0 {
+            let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+            let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+
+            let e_move = (input << 1) & not_a;
+            let w_move = (input >> 1) & not_h;
+
+            let horizontal = e_move | input | w_move;
+            let king_moves: u64 = ((horizontal) << 8) | e_move | w_move | (horizontal >> 8);
+
+            return king_moves;
+        }
+        return 0;
+    }
+
+    pub fn WB_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
 
-        // pawn masks
-        let rank3 = 0b0000000000000000111111110000000000000000000000000000000000000000u64;
+        let mut moves = 0;
+        if input != 0 {
+            let mut wb_ne = input;
+            let mut wb_nw = input;
+            let mut wb_se = input;
+            let mut wb_sw = input;
+
+            for _ in 1..8 {
+                // seperate iterations for each direction
+                wb_ne = ((wb_ne & not_h) >> 7) & !self.white_board;
+                wb_nw = ((wb_nw & not_a) >> 9) & !self.white_board;
+                wb_se = ((wb_se & not_1 & not_h) << 9) & !self.white_board;
+                wb_sw = ((wb_sw & not_1 & not_a) << 7) & !self.white_board;
+
+                moves = moves | wb_ne | wb_nw | wb_se | wb_sw;
+
+                wb_ne &= !self.occupied;
+                wb_nw &= !self.occupied;
+                wb_se &= !self.occupied;
+                wb_sw &= !self.occupied;
+
+                if (wb_ne + wb_nw + wb_se + wb_sw) == 0 {
+                    break;
+                }
+            }
+        }
+        return moves;
+    }
+
+    pub fn WR_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+        let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
+
+        let mut moves = 0;
+        if input != 0 {
+            let mut wr_west = input;
+            let mut wr_east = input;
+            let mut wr_north = input;
+            let mut wr_south = input;
+
+            for _ in 1..8 {
+                // seperate iterations for each direction
+                wr_west = ((wr_west & not_a) >> 1) & !self.white_board;
+                wr_east = ((wr_east & not_h) << 1) & !self.white_board;
+                wr_north = (wr_north >> 8) & !self.white_board;
+                wr_south = ((wr_south & not_1) << 8) & !self.white_board;
+
+                moves = moves | wr_west | wr_east | wr_north | wr_south;
+
+                wr_south &= !self.black_board;
+                wr_north &= !self.black_board;
+                wr_east &= !self.black_board;
+                wr_west &= !self.black_board;
+
+                if (wr_north + wr_south + wr_east + wr_north) == 0 {
+                    break;
+                }
+            }
+        }
+
+        return moves;
+    }
+
+    pub fn WQ_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+        let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
+
+        let mut moves = 0;
+        if input != 0 {
+            let mut wq_west = input;
+            let mut wq_east = input;
+            let mut wq_north = input;
+            let mut wq_south = input;
+            let mut wq_ne = input;
+            let mut wq_nw = input;
+            let mut wq_se = input;
+            let mut wq_sw = input;
+
+            for _ in 1..8 {
+                // seperate iterations for each direction
+                wq_west = ((wq_west & not_a) >> 1) & !self.white_board;
+                wq_east = ((wq_east & not_h) << 1) & !self.white_board;
+                wq_north = (wq_north >> 8) & !self.white_board;
+                wq_south = ((wq_south & not_1) << 8) & !self.white_board;
+                wq_ne = ((wq_ne & not_h) >> 7) & !self.white_board;
+                wq_nw = ((wq_nw & not_a) >> 9) & !self.white_board;
+                wq_se = ((wq_se & not_1 & not_h) << 9) & !self.white_board;
+                wq_sw = ((wq_sw & not_1 & not_a) << 7) & !self.white_board;
+
+                moves =
+                    moves | wq_west | wq_east | wq_north | wq_south | wq_ne | wq_nw | wq_se | wq_sw;
+
+                wq_south &= !self.occupied;
+                wq_north &= !self.occupied;
+                wq_east &= !self.occupied;
+                wq_west &= !self.occupied;
+                wq_ne &= !self.occupied;
+                wq_nw &= !self.occupied;
+                wq_se &= !self.occupied;
+                wq_sw &= !self.occupied;
+
+                if (wq_north + wq_south + wq_east + wq_north + wq_ne + wq_nw + wq_se + wq_sw) == 0 {
+                    break;
+                }
+            }
+        }
+        return moves;
+    }
+
+    pub fn BP_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let rank6 = 0b0000000000000000000000000000000000000000111111110000000000000000u64;
 
-        //knight masks
+        if input != 0 {
+            let single_move = (input << 8) & !self.occupied;
+            let pawn_attacks = ((input & not_h) << 7) | ((input & not_a) << 9);
+            let double_move = ((single_move & rank6) << 8) & !self.occupied;
+            let pawn_captures = pawn_attacks & self.white_board;
+
+            return pawn_captures | double_move | single_move;
+        }
+
+        return 0;
+    }
+
+    pub fn BN_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_ab = 0b1111110011111100111111001111110011111100111111001111110011111100u64;
         let not_gh = 0b0011111100111111001111110011111100111111001111110011111100111111u64;
 
-        let wb_board = self.black_board | self.white_board;
-        let wb_board_flip = !wb_board;
-        let white_board_flip = !self.white_board;
-        let black_board_flip = !self.black_board;
+        if input != 0 {
+            // variables named as
+            // 2 move direction 1 move direction
+            // moving two squares N and 1 square E would be NE
+            let ne_moves = (input >> 15) & not_a & !self.white_board;
+            let nw_moves = (input >> 17) & not_h & !self.white_board;
+            let en_moves = (input >> 6) & not_ab & !self.white_board;
+            let es_moves = (input << 10) & not_ab & !self.white_board;
 
-        // generate
-        if self.is_white {
-            if self.boards[0] != 0 {
-                let single_move = (self.wp >> 8) & wb_board_flip;
-                let pawn_attacks = ((self.wp & not_h) >> 7) | ((self.wp & not_a) >> 9);
-                let double_move = ((single_move & rank3) >> 8) & wb_board_flip;
-                let pawn_captures = pawn_attacks & self.black_board;
-            }
+            let se_moves = (input << 17) & not_a & !self.white_board;
+            let sw_moves = (input << 15) & not_h & !self.white_board;
 
-            if self.boards[1] != 0 {
-                // variables named as
-                // 2 move direction 1 move direction
-                // moving two squares N and 1 square E would be NE
-                let ne_moves = (self.wn >> 15) & not_a & white_board_flip;
-                let nw_moves = (self.wn >> 17) & not_h & white_board_flip;
-                let en_moves = (self.wn >> 6) & not_ab & white_board_flip;
-                let es_moves = (self.wn << 10) & not_ab & white_board_flip;
+            let wn_moves = (input >> 10) & not_gh & !self.white_board;
+            let ws_moves = (input << 6) & not_gh & !self.white_board;
 
-                let se_moves = (self.wn << 17) & not_a & white_board_flip;
-                let sw_moves = (self.wn << 15) & not_h & white_board_flip;
-
-                let wn_moves = (self.wn >> 10) & not_gh & white_board_flip;
-                let ws_moves = (self.wn << 6) & not_gh & white_board_flip;
-
-                let knight_moves = ne_moves
-                    | nw_moves
-                    | en_moves
-                    | es_moves
-                    | se_moves
-                    | sw_moves
-                    | wn_moves
-                    | ws_moves;
-            }
-
-            if self.boards[5] != 0 {
-                let e_move = (self.wk << 1) & not_a;
-                let w_move = (self.wk >> 1) & not_h;
-
-                let horizontal = e_move | self.wk | w_move;
-                let king_moves: u64 = ((horizontal) << 8) | e_move | w_move | (horizontal >> 8);
-            }
-
-            // --------------------------------------Sliding Pieces--------------------------------------
-
-            if self.boards[3] != 0 {
-                let mut moves = 0;
-                let mut wr_west = self.wr;
-                let mut wr_east = self.wr;
-                let mut wr_north = self.wr;
-                let mut wr_south = self.wr;
-
-                for _ in 1..8 {
-                    // seperate iterations for each direction
-                    wr_west = ((wr_west & not_a) >> 1) & white_board_flip;
-                    wr_east = ((wr_east & not_h) << 1) & white_board_flip;
-                    wr_north = (wr_north >> 8) & white_board_flip;
-                    wr_south = ((wr_south & not_1) << 8) & white_board_flip;
-
-                    moves = moves | wr_west | wr_east | wr_north | wr_south;
-
-                    wr_south &= black_board_flip;
-                    wr_north &= black_board_flip;
-                    wr_east &= black_board_flip;
-                    wr_west &= black_board_flip;
-
-                    if (wr_north + wr_south + wr_east + wr_north) == 0 {
-                        break;
-                    }
-                }
-            }
-
-            if self.boards[4] != 0 {
-                let mut moves = 0;
-                let mut wq_west = self.wq;
-                let mut wq_east = self.wq;
-                let mut wq_north = self.wq;
-                let mut wq_south = self.wq;
-                let mut wq_ne = self.wq;
-                let mut wq_nw = self.wq;
-                let mut wq_se = self.wq;
-                let mut wq_sw = self.wq;
-
-                for _ in 1..8 {
-                    // seperate iterations for each direction
-                    wq_west = ((wq_west & not_a) >> 1) & white_board_flip;
-                    wq_east = ((wq_east & not_h) << 1) & white_board_flip;
-                    wq_north = (wq_north >> 8) & white_board_flip;
-                    wq_south = ((wq_south & not_1) << 8) & white_board_flip;
-                    wq_ne = ((wq_ne & not_h) >> 7) & white_board_flip;
-                    wq_nw = ((wq_nw & not_a) >> 9) & white_board_flip;
-                    wq_se = ((wq_se & not_1 & not_h) << 9) & white_board_flip;
-                    wq_sw = ((wq_sw & not_1 & not_a) << 7) & white_board_flip;
-
-                    moves = moves
-                        | wq_west
-                        | wq_east
-                        | wq_north
-                        | wq_south
-                        | wq_ne
-                        | wq_nw
-                        | wq_se
-                        | wq_sw;
-
-                    wq_south &= wb_board_flip;
-                    wq_north &= wb_board_flip;
-                    wq_east &= wb_board_flip;
-                    wq_west &= wb_board_flip;
-                    wq_ne &= wb_board_flip;
-                    wq_nw &= wb_board_flip;
-                    wq_se &= wb_board_flip;
-                    wq_sw &= wb_board_flip;
-
-                    if (wq_north + wq_south + wq_east + wq_north + wq_ne + wq_nw + wq_se + wq_sw)
-                        == 0
-                    {
-                        break;
-                    }
-                }
-
-                println!("{}", self.print_pretty(moves))
-            }
-
-            if self.boards[2] != 0 {
-                let mut moves = 0;
-                let mut wb_ne = self.wb;
-                let mut wb_nw = self.wb;
-                let mut wb_se = self.wb;
-                let mut wb_sw = self.wb;
-
-                for _ in 1..8 {
-                    // seperate iterations for each direction
-                    wb_ne = ((wb_ne & not_h) >> 7) & white_board_flip;
-                    wb_nw = ((wb_nw & not_a) >> 9) & white_board_flip;
-                    wb_se = ((wb_se & not_1 & not_h) << 9) & white_board_flip;
-                    wb_sw = ((wb_sw & not_1 & not_a) << 7) & white_board_flip;
-
-                    moves = moves | wb_ne | wb_nw | wb_se | wb_sw;
-
-                    wb_ne &= wb_board_flip;
-                    wb_nw &= wb_board_flip;
-                    wb_se &= wb_board_flip;
-                    wb_sw &= wb_board_flip;
-
-                    if (wb_ne + wb_nw + wb_se + wb_sw) == 0 {
-                        break;
-                    }
-                }
-
-                println!("{}", self.print_pretty(moves))
-            }
-        } else {
-            // black
-            if self.boards[6] != 0 {
-                let single_move = (self.wp << 8) & wb_board_flip;
-                let pawn_attacks = ((self.wp & not_h) << 7) | ((self.wp & not_a) << 9);
-                let double_move = ((single_move & rank3) << 8) & wb_board_flip;
-                let pawn_captures = pawn_attacks & self.white_board;
-            }
-
-            if self.boards[7] != 0 {
-                // variables named as
-                // 2 move direction 1 move direction
-                // moving two squares N and 1 square E would be NE
-                let ne_moves = (self.bn >> 15) & not_a & white_board_flip;
-                let nw_moves = (self.bn >> 17) & not_h & white_board_flip;
-                let en_moves = (self.bn >> 6) & not_ab & white_board_flip;
-                let es_moves = (self.bn << 10) & not_ab & white_board_flip;
-
-                let se_moves = (self.bn << 17) & not_a & white_board_flip;
-                let sw_moves = (self.bn << 15) & not_h & white_board_flip;
-
-                let wn_moves = (self.bn >> 10) & not_gh & white_board_flip;
-                let ws_moves = (self.bn << 6) & not_gh & white_board_flip;
-
-                let knight_moves = ne_moves
-                    | nw_moves
-                    | en_moves
-                    | es_moves
-                    | se_moves
-                    | sw_moves
-                    | wn_moves
-                    | ws_moves;
-            }
-
-            if self.boards[11] != 0 {
-                let e_move = (self.bk << 1) & not_a;
-                let w_move = (self.bk >> 1) & not_h;
-
-                let horizontal = e_move | self.wk | w_move;
-                let king_moves: u64 = ((horizontal) << 8) | e_move | w_move | (horizontal >> 8);
-            }
-
-            // --------------------------------------Sliding Pieces--------------------------------------
-
-            if self.boards[9] != 0 {
-                let mut moves = 0;
-                let mut br_west = self.br;
-                let mut br_east = self.br;
-                let mut br_north = self.br;
-                let mut br_south = self.br;
-
-                for _ in 1..8 {
-                    // seperate iterations for each direction
-                    br_west = ((br_west & not_a) >> 1) & black_board_flip;
-                    br_east = ((br_east & not_h) << 1) & black_board_flip;
-                    br_north = (br_north >> 8) & black_board_flip;
-                    br_south = ((br_south & not_1) << 8) & black_board_flip;
-
-                    moves = moves | br_west | br_east | br_north | br_south;
-
-                    br_south &= wb_board_flip;
-                    br_north &= wb_board_flip;
-                    br_east &= wb_board_flip;
-                    br_west &= wb_board_flip;
-
-                    if (br_north + br_south + br_east + br_north) == 0 {
-                        break;
-                    }
-                }
-            }
-
-            if self.boards[10] != 0 {
-                let mut moves = 0;
-                let mut bq_west = self.bq;
-                let mut bq_east = self.bq;
-                let mut bq_north = self.bq;
-                let mut bq_south = self.bq;
-                let mut bq_ne = self.bq;
-                let mut bq_nw = self.bq;
-                let mut bq_se = self.bq;
-                let mut bq_sw = self.bq;
-
-                for _ in 1..8 {
-                    // seperate iterations for each direction
-                    bq_west = ((bq_west & not_a) >> 1) & black_board_flip;
-                    bq_east = ((bq_east & not_h) << 1) & black_board_flip;
-                    bq_north = (bq_north >> 8) & black_board_flip;
-                    bq_south = ((bq_south & not_1) << 8) & black_board_flip;
-                    bq_ne = ((bq_ne & not_h) >> 7) & black_board_flip;
-                    bq_nw = ((bq_nw & not_a) >> 9) & black_board_flip;
-                    bq_se = ((bq_se & not_1 & not_h) << 9) & black_board_flip;
-                    bq_sw = ((bq_sw & not_1 & not_a) << 7) & black_board_flip;
-
-                    moves = moves
-                        | bq_west
-                        | bq_east
-                        | bq_north
-                        | bq_south
-                        | bq_ne
-                        | bq_nw
-                        | bq_se
-                        | bq_sw;
-
-                    bq_south &= wb_board_flip;
-                    bq_north &= wb_board_flip;
-                    bq_east &= wb_board_flip;
-                    bq_west &= wb_board_flip;
-                    bq_ne &= wb_board_flip;
-                    bq_nw &= wb_board_flip;
-                    bq_se &= wb_board_flip;
-                    bq_sw &= wb_board_flip;
-
-                    if (bq_north + bq_south + bq_east + bq_north + bq_ne + bq_nw + bq_se + bq_sw)
-                        == 0
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if self.boards[8] != 0 {
-                let mut moves = 0;
-                let mut bb_ne = self.bb;
-                let mut bb_nw = self.bb;
-                let mut bb_se = self.bb;
-                let mut bb_sw = self.bb;
-
-                for _ in 1..8 {
-                    // seperate iterations for each direction
-                    bb_ne = ((bb_ne & not_h) >> 7) & black_board_flip;
-                    bb_nw = ((bb_nw & not_a) >> 9) & black_board_flip;
-                    bb_se = ((bb_se & not_1 & not_h) << 9) & black_board_flip;
-                    bb_sw = ((bb_sw & not_1 & not_a) << 7) & black_board_flip;
-
-                    moves = moves | bb_ne | bb_nw | bb_se | bb_sw;
-
-                    bb_ne &= wb_board_flip;
-                    bb_nw &= wb_board_flip;
-                    bb_se &= wb_board_flip;
-                    bb_sw &= wb_board_flip;
-
-                    if (bb_ne + bb_nw + bb_se + bb_sw) == 0 {
-                        break;
-                    }
-                }
-            }
+            return ne_moves
+                | nw_moves
+                | en_moves
+                | es_moves
+                | se_moves
+                | sw_moves
+                | wn_moves
+                | ws_moves;
         }
+        return 0;
     }
 
-    fn make(
-        &mut self,
-        from: u64,
-        to: u64,
-        is_capture: bool,
-        start_board: usize,
-        captured_board: usize,
-    ) {
-        if is_capture {
-            // handle capture
-        } else {
-            // not a capture
-            let from_to_bb = from ^ to;
-            self.boards[start_board] = self.boards[start_board] ^ from_to_bb;
-            if start_board > 5 {
-                self.black_board = self.black_board ^ from_to_bb;
-            } else {
-                self.white_board = self.white_board ^ from_to_bb;
+    pub fn BK_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+
+        if input != 0 {
+            let e_move = (input << 1) & not_a;
+            let w_move = (input >> 1) & not_h;
+
+            let horizontal = e_move | input | w_move;
+            let king_moves: u64 = ((horizontal) << 8) | e_move | w_move | (horizontal >> 8);
+            return king_moves;
+        }
+
+        return 0;
+    }
+
+    pub fn BB_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+        let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
+
+        let mut moves = 0;
+        if input != 0 {
+            let mut bb_ne = input;
+            let mut bb_nw = input;
+            let mut bb_se = input;
+            let mut bb_sw = input;
+
+            for _ in 1..8 {
+                // seperate iterations for each direction
+                bb_ne = ((bb_ne & not_h) >> 7) & !self.black_board;
+                bb_nw = ((bb_nw & not_a) >> 9) & !self.black_board;
+                bb_se = ((bb_se & not_1 & not_h) << 9) & !self.black_board;
+                bb_sw = ((bb_sw & not_1 & not_a) << 7) & !self.black_board;
+
+                moves = moves | bb_ne | bb_nw | bb_se | bb_sw;
+
+                bb_ne &= !self.occupied;
+                bb_nw &= !self.occupied;
+                bb_se &= !self.occupied;
+                bb_sw &= !self.occupied;
+
+                if (bb_ne + bb_nw + bb_se + bb_sw) == 0 {
+                    break;
+                }
             }
         }
+        return moves;
+    }
+
+    pub fn BR_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+        let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
+
+        let mut moves = 0;
+        if input != 0 {
+            let mut br_west = input;
+            let mut br_east = input;
+            let mut br_north = input;
+            let mut br_south = input;
+
+            for _ in 1..8 {
+                // seperate iterations for each direction
+                br_west = ((br_west & not_a) >> 1) & !self.black_board;
+                br_east = ((br_east & not_h) << 1) & !self.black_board;
+                br_north = (br_north >> 8) & !self.black_board;
+                br_south = ((br_south & not_1) << 8) & !self.black_board;
+
+                moves = moves | br_west | br_east | br_north | br_south;
+
+                br_south &= !self.occupied;
+                br_north &= !self.occupied;
+                br_east &= !self.occupied;
+                br_west &= !self.occupied;
+
+                if (br_north + br_south + br_east + br_north) == 0 {
+                    break;
+                }
+            }
+        }
+        return moves;
+    }
+
+    pub fn BQ_gen(&self, input: u64) -> u64 {
+        let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
+        let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
+        let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
+
+        let mut moves = 0;
+        if input != 0 {
+            let mut bq_west = input;
+            let mut bq_east = input;
+            let mut bq_north = input;
+            let mut bq_south = input;
+            let mut bq_ne = input;
+            let mut bq_nw = input;
+            let mut bq_se = input;
+            let mut bq_sw = input;
+
+            for _ in 1..8 {
+                // seperate iterations for each direction
+                bq_west = ((bq_west & not_a) >> 1) & !self.black_board;
+                bq_east = ((bq_east & not_h) << 1) & !self.black_board;
+                bq_north = (bq_north >> 8) & !self.black_board;
+                bq_south = ((bq_south & not_1) << 8) & !self.black_board;
+                bq_ne = ((bq_ne & not_h) >> 7) & !self.black_board;
+                bq_nw = ((bq_nw & not_a) >> 9) & !self.black_board;
+                bq_se = ((bq_se & not_1 & not_h) << 9) & !self.black_board;
+                bq_sw = ((bq_sw & not_1 & not_a) << 7) & !self.black_board;
+
+                moves =
+                    moves | bq_west | bq_east | bq_north | bq_south | bq_ne | bq_nw | bq_se | bq_sw;
+
+                bq_south &= !self.occupied;
+                bq_north &= !self.occupied;
+                bq_east &= !self.occupied;
+                bq_west &= !self.occupied;
+                bq_ne &= !self.occupied;
+                bq_nw &= !self.occupied;
+                bq_se &= !self.occupied;
+                bq_sw &= !self.occupied;
+
+                if (bq_north + bq_south + bq_east + bq_north + bq_ne + bq_nw + bq_se + bq_sw) == 0 {
+                    break;
+                }
+            }
+        }
+        return moves;
+    }
+
+    pub fn make(&mut self, from: u64, to: u64, piece: usize) {
+        let from_to_bb = from ^ to;
+        self.boards[piece] ^= from_to_bb;
+        if piece < 5 {
+            self.white_board ^= from_to_bb;
+        } else {
+            self.black_board ^= from_to_bb;
+        }
+        self.occupied ^= from_to_bb;
     }
 }
