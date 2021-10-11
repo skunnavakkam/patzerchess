@@ -2,6 +2,11 @@ py-src/test.py
 py-src/__pycache__
 py-src/board.pyc
 
+# data
+training/lichess_db_standard_rated_2020-03.pgn
+training/positions.txt
+training/__pycache__
+/Reference
 
 # Added by cargo
 
