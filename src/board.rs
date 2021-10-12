@@ -1,5 +1,6 @@
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Position {
+    pub mailbox: [u8; 64],
     pub boards: [u64; 12],
     pub black_board: u64,
     pub white_board: u64,
