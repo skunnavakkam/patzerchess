@@ -12,11 +12,11 @@ fn main() {
         ep: 0,
         fm: 0,
         hm: 0,
-        is_white: true,
+        is_white: false,
     };
 
     // its ur fault if you fuck up by using an incorrect string
-    board.parse_fen("8/8/8/2B5/8/8/8/8 w - - 0 1");
+    board.parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-    println!("{:?}", eval::material_eval(board));
+    println!("{:#b}", board.boards[0]);
 }
