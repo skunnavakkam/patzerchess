@@ -12,9 +12,15 @@ Currently, PatzerChess is no different from any other chess engine, using tradit
 
 All code files will be under /src.
 
-Board.py - contains the board representation and move generation function
-Eval.py - the traditional evaluation function without any neural networks (empty)
-Parsefen.py - parsing a fen string in order to convert it into a board representation
+- board.rs - contains the board representation along with the movement of pieces, also contains parsefen
+- eval.rs - where I chuck basic functions, which are a linear relationship, as described in the NNUE paper
+
+## More About Training Data
+
+Dataset 1:
+- Games extracted from lichess database of games from March 2020
+- Positions picked at random IF positions are further than 14 moves from the beginnings OR positions contain less than 2700 centipawns
+
 
 ## Sources and references
 
@@ -39,3 +45,8 @@ more specifc todos under respective directories
 - implement eval
 - implement search
 - implement make/unmake
+
+# Fun Facts
+
+1 PGN ~ 2000 bytes
+1 Position ~ 800 bits

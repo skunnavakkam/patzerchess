@@ -1,5 +1,6 @@
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Position {
+    pub mailbox: [u8; 64],
     pub boards: [u64; 12],
     pub black_board: u64,
     pub white_board: u64,
@@ -12,75 +13,31 @@ pub struct Position {
 }
 
 impl Position {
-    // don't have to worry about efficieny in this part since
-    // it probably only will run once
-    pub fn parse_fen(&mut self, input_fen: &str) {
-        let fen = input_fen.to_string();
-        let elements = fen.split(' ').collect::<Vec<&str>>();
-        let piece_list = elements[0].replace("/", "");
-        let color = elements[1];
-        let ep = elements[3];
-        let fm = elements[5];
-        let hm = elements[4];
-        let mut piece_string: String = "".to_string();
-
-        self.is_white = color == "w";
-
-        if ep != "-" {
-            self.ep = ep.parse::<u8>().unwrap();
-        } else {
-            self.ep = 255;
-        }
-
-        for piece in piece_list.chars() {
-            if piece.is_digit(10) {
-                piece_string += &' '.to_string().repeat((piece as usize) - 0x30);
-            } else {
-                piece_string += &piece.to_string();
-            }
-        }
-
-        for (square, piece) in piece_string.chars().enumerate() {
-            if piece == 'P' {
-                self.boards[0] ^= 1 << square;
-            } else if piece == 'N' {
-                self.boards[1] ^= 1 << square;
-            } else if piece == 'B' {
-                self.boards[2] ^= 1 << square;
-            } else if piece == 'R' {
-                self.boards[3] ^= 1 << square;
-            } else if piece == 'Q' {
-                self.boards[4] ^= 1 << square;
-            } else if piece == 'K' {
-                self.boards[5] ^= 1 << square;
-            }
-
-            if piece == 'p' {
-                self.boards[6] ^= 1 << square;
-            } else if piece == 'n' {
-                self.boards[7] ^= 1 << square;
-            } else if piece == 'b' {
-                self.boards[8] ^= 1 << square;
-            } else if piece == 'r' {
-                self.boards[9] ^= 1 << square;
-            } else if piece == 'q' {
-                self.boards[10] ^= 1 << square;
-            } else if piece == 'k' {
-                self.boards[11] ^= 1 << square;
-            }
-
-            if (piece >= 'A') & (piece != ' ') {
-                self.white_board ^= 1 << square;
-            } else if piece != ' ' {
-                self.black_board ^= 1 << square;
-            }
-        }
-
-        self.occupied = self.white_board | self.black_board;
+    /// Helper Function take from chessprogramming wiki
+    /// https://www.chessprogramming.org/Flipping_Mirroring_and_Rotating
+    fn flip_vertical(&self, x: u64) -> u64 {
+        return (x << 56)
+            | ((x << 40) & 0x00ff000000000000)
+            | ((x << 24) & 0x0000ff0000000000)
+            | ((x << 8) & 0x000000ff00000000)
+            | ((x >> 8) & 0x00000000ff000000)
+            | ((x >> 24) & 0x0000000000ff0000)
+            | ((x >> 40) & 0x000000000000ff00)
+            | (x >> 56);
     }
 
-    // don't have to worry about efficieny here as well
-    // try it if you hate yourself
+    /// Helper function taken from chessprogramming wiki
+    /// https://www.chessprogramming.org/Flipping_Mirroring_and_Rotating
+    fn mirror_horizontal(&self, mut x: u64) -> u64 {
+        let k1 = 0x5555555555555555;
+        let k2 = 0x3333333333333333;
+        let k4 = 0x0f0f0f0f0f0f0f0f;
+        x = ((x >> 1) & k1) + 2 * (x & k1);
+        x = ((x >> 2) & k2) + 4 * (x & k2);
+        x = ((x >> 4) & k4) + 16 * (x & k4);
+        return x;
+    }
+
     pub fn print_pretty(&self, bitboard: u64) -> String {
         let mut as_string = format!("{:#b}", bitboard).to_string();
         as_string.remove(0);
@@ -99,7 +56,70 @@ impl Position {
         return string_to_print;
     }
 
-    pub fn WP_gen(&self, input: u64) -> u64 {
+    pub fn parse_fen(&mut self, input_fen: &str) {
+        let fen = input_fen.to_string();
+        let elements = fen.split(' ').collect::<Vec<&str>>();
+        let pieces = elements[0].replace("/", "");
+
+        let mut square = 0u16;
+        for piece in pieces.chars() {
+            if piece.is_digit(10) {
+                square += piece as u16 - '0' as u16;
+                continue;
+            }
+
+            if piece.to_string() > "A".to_string() {
+                self.white_board |= 1 << square
+            } else {
+                self.black_board |= 1 << square
+            }
+
+            if piece == 'P' {
+                self.boards[0] ^= 1 << square;
+            } else if piece == 'N' {
+                self.boards[1] ^= 1 << square;
+            } else if piece == 'B' {
+                self.boards[2] ^= 1 << square;
+            } else if piece == 'R' {
+                self.boards[3] ^= 1 << square;
+            } else if piece == 'Q' {
+                self.boards[4] ^= 1 << square;
+            } else if piece == 'K' {
+                self.boards[5] ^= 1 << square;
+            } else if piece == 'p' {
+                self.boards[6] ^= 1 << square;
+            } else if piece == 'n' {
+                self.boards[7] ^= 1 << square;
+            } else if piece == 'b' {
+                self.boards[8] ^= 1 << square;
+            } else if piece == 'r' {
+                self.boards[9] ^= 1 << square;
+            } else if piece == 'q' {
+                self.boards[10] ^= 1 << square;
+            } else if piece == 'k' {
+                self.boards[11] ^= 1 << square;
+            }
+
+            square += 1
+        }
+
+        self.occupied = self.white_board | self.black_board;
+
+        let color = elements[1];
+        let ep = elements[3];
+        self.fm = elements[5].parse::<u8>().unwrap();
+        self.hm = elements[4].parse::<u8>().unwrap();
+
+        self.is_white = color == "w";
+
+        if ep != "-" {
+            self.ep = ep.parse::<u8>().unwrap();
+        } else {
+            self.ep = 255;
+        }
+    }
+
+    pub fn wp_gen(&self, input: u64) -> u64 {
         if input != 0 {
             let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
             let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
@@ -115,7 +135,7 @@ impl Position {
         return 0u64;
     }
 
-    pub fn WN_gen(&self, input: u64) -> u64 {
+    pub fn wn_gen(&self, input: u64) -> u64 {
         if input != 0 {
             // masks
             let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
@@ -125,7 +145,7 @@ impl Position {
 
             // variables named as
             // 2 move direction 1 move direction
-            // moving two squares N and 1 square E would be NE
+            // moving two squares n and 1 square e would be ne
             let ne_moves = (input >> 15) & not_a & !self.white_board;
             let nw_moves = (input >> 17) & not_h & !self.white_board;
             let en_moves = (input >> 6) & not_ab & !self.white_board;
@@ -150,7 +170,7 @@ impl Position {
         return 0;
     }
 
-    pub fn WK_gen(&self, input: u64) -> u64 {
+    pub fn wk_gen(&self, input: u64) -> u64 {
         if input != 0 {
             let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
             let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
@@ -166,7 +186,7 @@ impl Position {
         return 0;
     }
 
-    pub fn WB_gen(&self, input: u64) -> u64 {
+    pub fn wb_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
@@ -200,7 +220,7 @@ impl Position {
         return moves;
     }
 
-    pub fn WR_gen(&self, input: u64) -> u64 {
+    pub fn wr_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
@@ -235,7 +255,7 @@ impl Position {
         return moves;
     }
 
-    pub fn WQ_gen(&self, input: u64) -> u64 {
+    pub fn wq_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
@@ -282,7 +302,7 @@ impl Position {
         return moves;
     }
 
-    pub fn BP_gen(&self, input: u64) -> u64 {
+    pub fn bp_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let rank6 = 0b0000000000000000000000000000000000000000111111110000000000000000u64;
@@ -299,7 +319,7 @@ impl Position {
         return 0;
     }
 
-    pub fn BN_gen(&self, input: u64) -> u64 {
+    pub fn bn_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_ab = 0b1111110011111100111111001111110011111100111111001111110011111100u64;
@@ -308,7 +328,7 @@ impl Position {
         if input != 0 {
             // variables named as
             // 2 move direction 1 move direction
-            // moving two squares N and 1 square E would be NE
+            // moving two squares n and 1 square e would be ne
             let ne_moves = (input >> 15) & not_a & !self.white_board;
             let nw_moves = (input >> 17) & not_h & !self.white_board;
             let en_moves = (input >> 6) & not_ab & !self.white_board;
@@ -332,7 +352,7 @@ impl Position {
         return 0;
     }
 
-    pub fn BK_gen(&self, input: u64) -> u64 {
+    pub fn bk_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
 
@@ -348,7 +368,7 @@ impl Position {
         return 0;
     }
 
-    pub fn BB_gen(&self, input: u64) -> u64 {
+    pub fn bb_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
@@ -382,7 +402,7 @@ impl Position {
         return moves;
     }
 
-    pub fn BR_gen(&self, input: u64) -> u64 {
+    pub fn br_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
@@ -416,7 +436,7 @@ impl Position {
         return moves;
     }
 
-    pub fn BQ_gen(&self, input: u64) -> u64 {
+    pub fn bq_gen(&self, input: u64) -> u64 {
         let not_a = 0b1111111011111110111111101111111011111110111111101111111011111110u64;
         let not_h = 0b0111111101111111011111110111111101111111011111110111111101111111u64;
         let not_1 = 0b0000000011111111111111111111111111111111111111111111111111111111u64;
@@ -461,16 +481,5 @@ impl Position {
             }
         }
         return moves;
-    }
-
-    pub fn make(&mut self, from: u64, to: u64, piece: usize) {
-        let from_to_bb = from ^ to;
-        self.boards[piece] ^= from_to_bb;
-        if piece < 5 {
-            self.white_board ^= from_to_bb;
-        } else {
-            self.black_board ^= from_to_bb;
-        }
-        self.occupied ^= from_to_bb;
     }
 }

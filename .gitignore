@@ -1,6 +1,7 @@
 py-src/test.py
 py-src/__pycache__
 py-src/board.pyc
+training/test.py
 
 # data
 training/lichess_db_standard_rated_2020-03.pgn
