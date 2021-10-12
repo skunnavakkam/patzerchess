@@ -38,12 +38,28 @@ impl Position {
         return x;
     }
 
+    pub fn print_pretty(&self, bitboard: u64) -> String {
+        let mut as_string = format!("{:#b}", bitboard).to_string();
+        as_string.remove(0);
+        as_string.remove(0);
+
+        let mut string_to_print = "\n".to_string();
+
+        for (square, bit) in as_string.chars().rev().enumerate() {
+            string_to_print.push_str(&bit.to_string());
+            string_to_print.push_str(" ");
+            if square % 8 == 7 {
+                string_to_print.push_str("\n");
+            }
+        }
+
+        return string_to_print;
+    }
+
     pub fn parse_fen(&mut self, input_fen: &str) {
         let fen = input_fen.to_string();
         let elements = fen.split(' ').collect::<Vec<&str>>();
-        let pieces = (elements[0].split('/').rev())
-            .collect::<Vec<&str>>()
-            .join("");
+        let pieces = elements[0].replace("/", "");
 
         let mut square = 0u16;
         for piece in pieces.chars() {
