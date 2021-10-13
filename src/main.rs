@@ -5,7 +5,7 @@ use std::io::{BufRead, BufReader};
 
 fn main() {
     let mut board = board::Position {
-        mailbox: [0; 64],
+        mailbox: [13; 64],
         boards: [0; 12],
         black_board: 0,
         white_board: 0,
@@ -22,5 +22,5 @@ fn main() {
 
     let wp_moves = board.wp_gen(board.boards[0]);
 
-    println!("{}", board.print_pretty(wp_moves));
+    println!("{}", board.print_pretty(board.boards[3]));
 }
