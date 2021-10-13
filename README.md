@@ -18,8 +18,9 @@ All code files will be under /src.
 ## More About Training Data
 
 Dataset 1:
-- Games extracted from lichess database of games from March 2020
+- Datapoints extracted from lichess database of games from March 2020
 - Positions picked at random IF positions are further than 14 moves from the beginnings OR positions contain less than 2700 centipawns
+- Each datapoint contains position, result, and next move in square -
 
 
 ## Sources and references
