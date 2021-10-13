@@ -1,3 +1,5 @@
+use std::num;
+
 #[derive(Debug)]
 pub struct Position {
     pub mailbox: [u8; 64],
@@ -36,6 +38,10 @@ impl Position {
         x = ((x >> 2) & k2) + 4 * (x & k2);
         x = ((x >> 4) & k4) + 16 * (x & k4);
         return x;
+    }
+
+    fn gen_sliders(&self, slider: u64, occupied: u64) -> u64 {
+        return 0u64;
     }
 
     pub fn print_pretty(&self, bitboard: u64) -> String {
@@ -82,6 +88,7 @@ impl Position {
                 self.boards[2] ^= 1 << square;
             } else if piece == 'R' {
                 self.boards[3] ^= 1 << square;
+                println!("{:}", square);
             } else if piece == 'Q' {
                 self.boards[4] ^= 1 << square;
             } else if piece == 'K' {
@@ -94,6 +101,7 @@ impl Position {
                 self.boards[8] ^= 1 << square;
             } else if piece == 'r' {
                 self.boards[9] ^= 1 << square;
+                println!("{:}", square);
             } else if piece == 'q' {
                 self.boards[10] ^= 1 << square;
             } else if piece == 'k' {
@@ -481,5 +489,53 @@ impl Position {
             }
         }
         return moves;
+    }
+
+    pub fn make(&mut self, start: usize, end: usize) {
+        let mut is_capture = false;
+
+        let square_end = self.mailbox[end]; // would be 13 if empty
+        let square_start = self.mailbox[start]; // really shouldn't be empty, not going to check
+
+        let from = 1u64 << start;
+        let to = 1u64 << end;
+
+        let from_to = from ^ to;
+
+        let is_castle = ((square_start % 6) == 5) & ((start as i8 - end as i8).abs() == 2);
+        let is_enpassant = (end as u8) == self.ep;
+
+        is_capture |= (square_end != 13);
+        is_capture |= (end as u8) == self.ep;
+
+        self.is_white = !self.is_white;
+
+        if square_start % 6 == 0 {
+            // pawn move
+            self.fm = 0;
+            self.hm = 0;
+
+            if (start as i8 - end as i8).abs() == 16 {
+                self.ep = ((start + end) / 2) as u8;
+            } else {
+                self.ep = 255;
+            }
+        } else if square_start == 5 {
+            // white castling
+            self.castling[0] = false;
+            self.castling[1] = false;
+        } else if square_start == 11 {
+            // black castling
+            self.castling[2] = false;
+            self.castling[3] = false;
+        } else if square_start == 3 {
+            // white castling
+            if self.castling[0] {}
+        }
+
+        if is_capture {
+            self.fm = 0;
+            self.hm = 0;
+        }
     }
 }
