@@ -7,7 +7,13 @@ pub struct Position {
     pub black_board: u64,
     pub white_board: u64,
     pub occupied: u64,
-    pub castling: [bool; 4],
+
+    // picrew
+    pub white_kingside: bool,
+    pub white_queenside: bool,
+    pub black_kingside: bool,
+    pub black_queenside: bool,
+
     pub ep: u8,
     pub fm: u8,
     pub hm: u8,
@@ -504,12 +510,38 @@ impl Position {
 
         let is_castle = ((square_start % 6) == 5) & ((start as i8 - end as i8).abs() == 2);
         let is_enpassant = (end as u8) == self.ep;
-
-        is_capture |= (square_end != 13);
-        is_capture |= (end as u8) == self.ep;
+        let is_capture = square_end != 13;
 
         self.is_white = !self.is_white;
 
+        self.boards[square_start as usize] ^= from_to;
+
+        if square_start < 6 {
+            self.white_board ^= from_to
+        } else {
+            self.black_board ^= from_to
+        }
+
+        if is_capture {
+            self.boards[end] ^= to;
+            if square_start < 6 {
+                self.black_board ^= to
+            } else {
+                self.white_board ^= to
+            }
+        } else if is_enpassant {
+            if square_start < 6 {
+                self.boards[end] ^= 1 << (self.ep + 8);
+                self.black_board ^= 1 << (self.ep + 8)
+            } else {
+                self.boards[end] ^= 1 << (self.ep - 8);
+                self.white_board ^= 1 << (self.ep - 8)
+            }
+        }
+
+        if is_castle {}
+
+        // castling
         if square_start % 6 == 0 {
             // pawn move
             self.fm = 0;
@@ -522,15 +554,28 @@ impl Position {
             }
         } else if square_start == 5 {
             // white castling
-            self.castling[0] = false;
-            self.castling[1] = false;
+            self.white_kingside = false;
+            self.white_queenside = false;
         } else if square_start == 11 {
             // black castling
-            self.castling[2] = false;
-            self.castling[3] = false;
+            self.black_kingside = false;
+            self.black_queenside = false;
         } else if square_start == 3 {
             // white castling
-            if self.castling[0] {}
+            if (self.white_kingside) & (start == 63) {
+                self.white_kingside = false;
+            }
+            if (self.white_queenside) & (start == 56) {
+                self.white_queenside = false;
+            }
+        } else if square_start == 9 {
+            // black castling
+            if self.black_kingside & (start == 7) {
+                self.black_kingside = false;
+            }
+            if self.black_queenside & (start == 0) {
+                self.black_queenside = false;
+            }
         }
 
         if is_capture {

@@ -1,5 +1,3 @@
-use super::board::*;
-
 /// Look up table for population count
 /// Only applies to 8 bit integers
 /// Used in popcnt_table for 64 bit ints

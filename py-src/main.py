@@ -1,25 +1,17 @@
 def main():
 
-    from board import Position
-    from timeit import timeit
+    import chess
+    import eval
+    import random
+    from absearch import search, qs_search
+    from operator import itemgetter
 
-    board = Position('1k6/8/8/8/R7/8/8/K7 w - - 0 1')
-    
-    board._gen_out_of_check()
+    board = chess.Board(
+        fen="r1bqkbnr/ppp2ppp/2np4/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4")
 
-    #time = timeit(lambda: board._gen_out_of_check(), number = 10000)/10000
-    #print(time)
+    moves = sorted([(eval.move(move, pos), move)
+                    for move in moves], key=lambda x: x[0], reverse=True)
 
-
-def as_board(bitboard):
-    return_string = ""
-    bb = bin(bitboard)[2:][::-1]
-    for square, bit in enumerate( (bb + ((64 - len(bb)) * "0")) ):
-        return_string += bit
-        return_string += " "
-        if square % 8 == 7:
-            return_string += "\n"
-    return return_string
 
 if __name__ == "__main__":
     main()

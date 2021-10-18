@@ -33,12 +33,10 @@ def find_positions(moves_list, result) -> tuple:
             9 * b.count('q')
         )
 
-        next_move = moves_list[num_moves + 1]
-
-        if next_move == "0-1" or next_move == "1-0" or next_move == "1/2-1/2":
-            continue
-
         if ((w_material < 27 or b_material < 27) or num_moves > 14):
-            positions.append((board.fen(), result, str(board.parse_san(next_move))))
+            positions.append((board.fen(), result))
 
-    return random.choice(positions)
+    if len(positions) != 0:
+        return random.choice(positions)
+    else:
+        return None

@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 draw = "0.3.0"
+chess = "3.2.0"
