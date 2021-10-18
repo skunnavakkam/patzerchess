@@ -7,7 +7,9 @@ best_move = None
 # reaches quiet posiitons from loud positions by running through captures/forced moves
 
 
-def qs_search(pos, score):
+def qs_search(board, score):
+
+    pos = board.copy()
 
     import eval
 
@@ -17,9 +19,15 @@ def qs_search(pos, score):
         return -MATE_VALUE
 
     elif len(moves) == 1:
-        copy = pos
+
+        print(pos)
+
+        copy = pos.copy()
         copy.push(moves[0])
-        return -qs_search(copy, -(score + eval.move(moves[0], pos)))
+
+        evl = eval.move(moves[0], pos)
+
+        return -qs_search(copy, -(score + evl))
 
     else:
         moves = sorted([(eval.move(move, pos), move)
@@ -35,7 +43,7 @@ def qs_search(pos, score):
             if evl < QS_LIMIT:
                 break
 
-            copy = pos
+            copy = pos.copy()
             copy.push(move)
 
             curr_search = -qs_search(copy, -(score + evl))
