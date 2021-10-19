@@ -2,17 +2,20 @@
 import chess
 import eval
 import random
-from absearch import search, qs_search
+from absearch import *
 from operator import itemgetter
+
+MATE_VALUE = -30_000
 
 
 def main():
     board = chess.Board(
-        fen="r1bqkbnr/ppp2ppp/2np4/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4")
+        fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 
-    print(qs_search(board, 0))
+    moves = get_moves(board, 1)
 
-    print(board)
+    for move in moves:
+        print(move)
 
 
 if __name__ == "__main__":
