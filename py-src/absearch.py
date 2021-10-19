@@ -19,9 +19,6 @@ def qs_search(board, score):
         return -MATE_VALUE
 
     elif len(moves) == 1:
-
-        print(pos)
-
         copy = pos.copy()
         copy.push(moves[0])
 
@@ -70,12 +67,16 @@ def search(alpha, beta, pos, depth: int, score: int):
 
     if len(moves) == 0:
         return -MATE_VALUE
-
-    upper = -MATE_VALUE
+        
     best_move = None
 
     for move in pos.moves:
         evl = eval.move(move, pos)
-        copy = pos
+        copy = pos.copy()
         copy.push(move)
         evaluation = -search(-beta, -alpha, copy, depth - 1, -(score + evl))
+        if evaluation >= beta:
+            return beta
+        if evaluation > alpha:
+            alpha = score
+    return alpha
