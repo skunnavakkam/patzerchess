@@ -1,27 +1,21 @@
 # absearch or negamax search
 
-import eval
+import evaluate
 
 QS_LIMIT = 219
 MATE_VALUE = 30_000
 best_move = None
 
 # reaches quiet posiitons from loud positions by running through captures/forced moves
-
-
 def get_moves(pos, depth):
 
     depth = max(depth, 0)
 
-    def dummy_eval(move):
-        return eval.move(move, pos)
+    for move in pos.legal_moves:
+        
+        if depth > 0 or (pos.is_capture(move) and pos.piece_type_at(move.to_square) != 1):
+            yield move  
 
-    mvs = sorted(pos.legal_moves, key=dummy_eval, reverse=True)
-
-    for move in mvs:
-        evl = eval.move(move, pos)
-        if depth > 0 or evl > QS_LIMIT:
-            yield move
 
 
 class Searcher:
@@ -31,20 +25,48 @@ class Searcher:
         self.history = set()
         self.nodes = 0
 
+def queiesce(alpha, beta, pos):
+    moves = list(get_moves(pos,0))
 
-def search(alpha, beta, pos, depth: int, score: int):
+    stand_pat = -evaluate.position(pos)
 
-    import chess
-    import eval
-    from operator import itemgetter
+    if len(moves) == 0: return stand_pat
 
-    if depth == 0:
-        moves = get_moves(pos, depth)
-        if moves.count() == 0:
-            return -score
-        else:
-            copy = pos.copy()
-            copy.push(move)
-            return (-beta, -alpha, copy, depth - 1, )
+    if stand_pat >= beta:
+        return beta
+    if alpha < stand_pat:
+        alpha = stand_pat
 
-    else:
+    for move in moves:
+
+        pos.push(move)
+        score = -queiesce(-beta, -alpha, pos)
+        pos.pop()
+
+        if score >= beta:
+            return beta
+        if score > alpha:
+            alpha = score
+        
+    return alpha
+
+def alpha_beta(alpha, beta, depth, pos):
+
+    if depth == 0: return (queiesce(alpha, beta, pos), None)
+
+    if pos.outcome() is not None:
+        return (queiesce(alpha, beta, pos), None)
+
+    moves = get_moves(pos, depth)
+    best_move = None
+    for move in moves:
+        pos.push(move)
+        score = -alpha_beta(-beta, -alpha, depth-1, pos)[0]
+        pos.pop()
+
+        if (score >= beta):
+            return (beta, None)
+        if score > alpha:
+            alpha = score
+            best_move = move
+    return (alpha, best_move)
