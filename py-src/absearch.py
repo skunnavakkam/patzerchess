@@ -1,25 +1,38 @@
 # absearch or negamax search
 
 import evaluate
+import chess
+import chess.polygot
 
-QS_LIMIT = 219
-MATE_VALUE = 30_000
-best_move = None
-
-
-
-
-
-
+TABLE_SIZE = 1E7
+MATE_VALUE = 
 
 class Searcher:
     
     def __init__(self):
+        # Basically handles transpositions
+        # TRANS TABLE FORMAT:
+        # {(zobrist): ((score, move), depth)}
+        # The reason we have a seperate depth tag is to facilitate the following:
+        # Understandably, the greater the search depth the better the evaluation
+        # Thus, by adding in a depth tag, we are able to pick positions with max depth
+        # In addition, if we search a position to a greater depth, we are able to replace the dict Entry
+        # this would maximise both the depth of the entries in the dictionary and the depth of the vals we pull
         self.tp = {}
+        self.nodes = 0
 
+    # Our overarching Alpha-Beta search. I plan to wrap this in an iterative deepening framework
+    # Using transpositions as Trans
     def alpha_beta(self, alpha, beta, depth, pos):
 
-        zobrist = 
+        zobrist = chess.polygot.zobrist(pos)
+        trans = self.tp.get(zobrist)
+        if trans is not None:
+            ((trans_score, trans_move), trans_depth) = trans
+            if trans_depth >= depth:
+                return (trans_score, trans_move)
+        # now can guarantee that the all moves generated need to be appended to the dictionary
+        # This is due to that it doesn't exist 
 
         if depth == 0: return (queiesce(alpha, beta, pos), None)
 
@@ -34,18 +47,35 @@ class Searcher:
             pos.pop()
 
             if (score >= beta):
+                self.tp[zobrist] = ((beta, None), depth)
                 return (beta, None)
             if score > alpha:
                 alpha = score
                 best_move = move
+        
+        self.tp[zobrist] = ((alpha, best_move), depth)
         return (alpha, best_move)
 
-    def queiesce(alpha, beta, pos):
+
+    ##### QUEIESCE SEARCH #####
+    # Reaches calm positions from positions with captures
+    # is important, since it basically blunder checks
+    def queiesce(self, alpha, beta, pos):
+
+        zobrist = chess.polygot.zobrist(pos)
+        trans = self.tp.get(zobrist)
+        if trans is not None:
+            ((trans_score, trans_move), trans_depth) = trans
+            if trans_depth >= depth:
+                return (trans_score, trans_move)
+
         moves = list(get_moves(pos,0))
 
         stand_pat = -evaluate.position(pos)
 
-        if len(moves) == 0: return stand_pat
+        if len(moves) == 0: 
+            self.tp[zobrist] = ((stand_pat, None), 0)
+            return stand_pat
 
         if stand_pat >= beta:
             return beta
@@ -59,10 +89,12 @@ class Searcher:
             pos.pop()
 
             if score >= beta:
+                self.tp[zobrist] = ((beta, None), 0)
                 return beta
             if score > alpha:
                 alpha = score
-            
+        
+        self.tp[zobrist] = ((alpha, None), 0)
         return alpha
 
     # reaches quiet posiitons from loud positions by running through captures/forced moves
@@ -73,4 +105,26 @@ class Searcher:
         for move in pos.legal_moves:
             
             if depth > 0 or (pos.is_capture(move) and pos.piece_type_at(move.to_square) != 1):
-                yield move  
+                yield move
+
+
+    ##### SEARCH #####
+    # Returns a generator object, based on iterative deepening.
+    # Returns a tuple of (move, score, depth)
+    # again a lot of code taken from sunfish
+    def search(self, pos):
+
+        ranked_moves = []
+
+        # initializing the ranked_moves
+
+
+        # loop of finite length for two reasons:
+        # for loops are faster than while loops AND
+        # we don't want people searching to depth infin lest there might be a trans table overflow
+        for depth in range(1,1000):
+            
+
+        # you would almost never reach here
+        print("You, you have been here a long time")
+
