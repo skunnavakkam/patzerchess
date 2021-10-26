@@ -2,12 +2,12 @@
 
 import evaluate
 import chess
-import chess.polygot
+import chess.polyglot
 
 TABLE_SIZE = 1E7
-MATE_VALUE = 
+MATE_VALUE = 524_288
 
-class Searcher:
+class ABSearcher:
     
     def __init__(self):
         # Basically handles transpositions
@@ -25,7 +25,7 @@ class Searcher:
     # Using transpositions as Trans
     def alpha_beta(self, alpha, beta, depth, pos):
 
-        zobrist = chess.polygot.zobrist(pos)
+        zobrist = chess.polyglot.zobrist_hash(pos)
         trans = self.tp.get(zobrist)
         if trans is not None:
             ((trans_score, trans_move), trans_depth) = trans
@@ -34,12 +34,12 @@ class Searcher:
         # now can guarantee that the all moves generated need to be appended to the dictionary
         # This is due to that it doesn't exist 
 
-        if depth == 0: return (queiesce(alpha, beta, pos), None)
+        if depth == 0: return (self.queiesce(alpha, beta, pos), None)
 
         if pos.outcome() is not None:
-            return (queiesce(alpha, beta, pos), None)
+            return (self.queiesce(alpha, beta, pos), None)
 
-        moves = get_moves(pos, depth)
+        moves = self.get_moves(pos, depth)
         best_move = None
         for move in moves:
             pos.push(move)
@@ -62,14 +62,13 @@ class Searcher:
     # is important, since it basically blunder checks
     def queiesce(self, alpha, beta, pos):
 
-        zobrist = chess.polygot.zobrist(pos)
+        zobrist = chess.polyglot.zobrist_hash(pos)
         trans = self.tp.get(zobrist)
         if trans is not None:
             ((trans_score, trans_move), trans_depth) = trans
-            if trans_depth >= depth:
-                return (trans_score, trans_move)
+            return trans_score
 
-        moves = list(get_moves(pos,0))
+        moves = list(self.get_moves(pos,0))
 
         stand_pat = -evaluate.position(pos)
 
@@ -85,7 +84,7 @@ class Searcher:
         for move in moves:
 
             pos.push(move)
-            score = -queiesce(-beta, -alpha, pos)
+            score = -self.queiesce(-beta, -alpha, pos)
             pos.pop()
 
             if score >= beta:
@@ -98,7 +97,7 @@ class Searcher:
         return alpha
 
     # reaches quiet posiitons from loud positions by running through captures/forced moves
-    def get_moves(pos, depth):
+    def get_moves(self, pos, depth):
 
         depth = max(depth, 0)
 
@@ -114,16 +113,17 @@ class Searcher:
     # again a lot of code taken from sunfish
     def search(self, pos):
 
-        ranked_moves = []
-
-        # initializing the ranked_moves
-
+        alpha = -MATE_VALUE
+        beta = MATE_VALUE
 
         # loop of finite length for two reasons:
         # for loops are faster than while loops AND
         # we don't want people searching to depth infin lest there might be a trans table overflow
+
+        self.tp.clear()
+
         for depth in range(1,1000):
-            
+            yield self.alpha_beta(alpha, beta, depth, pos)
 
         # you would almost never reach here
         print("You, you have been here a long time")

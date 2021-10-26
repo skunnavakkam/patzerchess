@@ -34,6 +34,7 @@ def find_positions(moves_list, result) -> tuple:
         )
 
         if ((w_material < 27 or b_material < 27) or num_moves > 14):
+            print("piss")
             positions.append((board.fen(), result))
 
     if len(positions) != 0:
