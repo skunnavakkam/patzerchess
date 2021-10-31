@@ -37,6 +37,7 @@ Dataset 1:
 - [GarbochessJS, using as a way to reference SF](https://github.com/glinscott/Garbochess-JS)
 - [Programming an Advanced Chess Engine - Logic Crazy](https://www.youtube.com/playlist?list=PLQV5mozTHmacMeRzJCW_8K3qw2miYqd0c)
 - [Other Search Methods](https://github.com/leela-zero/leela-zero/issues/860)
+- [PV network explanation](https://towardsdatascience.com/policy-networks-vs-value-networks-in-reinforcement-learning-da2776056ad2)
 
 #TODO
 

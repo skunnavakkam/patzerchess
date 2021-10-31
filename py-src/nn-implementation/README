@@ -1,0 +1,6 @@
+
+The implementation that would be used as the final product
+largely based off of the alpha0 pseudocode, since im not smart enough to do this myself
+using some weird stuff to try to make it more human
+
+also heavily referencing chess-alpha-zero, since that would effectively be a simpler version of lc0 though not sure

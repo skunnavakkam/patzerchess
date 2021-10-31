@@ -36,6 +36,11 @@ def parse_pgn(file):
                 to_print = ""
 
                 positions = list(game.mainline())
+                
+                if (len(positions) - 1) < 1:
+                    break
+
+
                 choice = random.randrange(len(positions)-1)
 
                 position = positions[choice].board().fen()
@@ -66,7 +71,14 @@ def parse_pgn(file):
 
 def main():
 
-    parse_pgn("raw-data/KingBase2019-A00-A39.pgn")
+    parse_pgn("raw-data/KingBase2019-A80-A99.pgn")
+    parse_pgn("raw-data/KingBase2019-B00-B19.pgn")
+    parse_pgn("raw-data/KingBase2019-B20-B49.pgn")
+    parse_pgn("raw-data/KingBase2019-B50-B99.pgn")
+    parse_pgn("raw-data/KingBase2019-C00-C19.pgn")
+    parse_pgn("raw-data/KingBase2019-C20-C59.pgn")
+    parse_pgn("raw-data/KingBase2019-C60-C99.pgn")
+
 
 
 if __name__ == '__main__':
