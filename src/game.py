@@ -67,4 +67,5 @@ class Board(chess.Board):
         pawns = fixed_pawns & self.occupied_co[chess.WHITE]
         
 
-
+    def is_endgame(self) -> bool: 
+        return (chess.popcount(self.occupied) <= 10)
