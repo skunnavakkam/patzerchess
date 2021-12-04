@@ -16,7 +16,7 @@ BB_BLACKSIDE = chess.BB_RANK_5 | chess.BB_RANK_6 | chess.BB_RANK_7 | chess.BB_RA
 # https://www.chess.com/article/view/how-to-evaluate-a-position by Jeremy Silman
 class SmartBoard(chess.Board):
 
-    def image(self) -> list:
+    def image(self):
 
         turn = self.turn
 
@@ -31,14 +31,36 @@ class SmartBoard(chess.Board):
 
         pawn_tension = int_to_bits_list(self._pawn_tension())
 
-        image = np.array([weak_complex, opponent_weak_complex, king_pawn_shield, opponent_king_pawn_shield, king_attackers,
-                          opponent_king_attackers, pawn_tension, int_to_bits_list(
-                              self.pawns), int_to_bits_list(self.knights),
-                          int_to_bits_list(self.bishops), int_to_bits_list(
-                              self.rooks), int_to_bits_list(self.queens), int_to_bits_list(self.kings),
-                          int_to_bits_list(self.occupied_co[chess.WHITE]), int_to_bits_list(self.occupied_co[chess.BLACK])])
+        vertical_sliders = int_to_bits_list(self.queens & self.rooks)
+        diagonal_sliders = int_to_bits_list(self.queens & self.bishops)
 
-        print(image.transpose().reshape(8, 8, 15))
+        # board_planes = np.asarray([weak_complex, opponent_weak_complex, king_pawn_shield, opponent_king_pawn_shield, king_attackers,
+        #                            opponent_king_attackers, pawn_tension, int_to_bits_list(
+        #                                self.pawns), int_to_bits_list(self.knights),
+        #                            vertical_sliders, diagonal_sliders, int_to_bits_list(
+        #                                self.kings),
+        #                            int_to_bits_list(self.occupied_co[chess.WHITE]), int_to_bits_list(self.occupied_co[chess.BLACK])], dtype=np.int16)
+
+        ep = np.zeros(64)
+        ep[self.ep_square] = 1
+
+        image = np.asarray([weak_complex, opponent_weak_complex,
+                            king_pawn_shield, opponent_king_pawn_shield,
+                            king_attackers, opponent_king_attackers,
+                            pawn_tension,
+                            int_to_bits_list(
+                                self.pawns), int_to_bits_list(self.knights),
+                            vertical_sliders, diagonal_sliders, int_to_bits_list(
+                                self.kings),
+                            int_to_bits_list(self.occupied_co[chess.WHITE]), int_to_bits_list(
+                                self.occupied_co[chess.BLACK]),
+
+                            # Aux Planes
+                            int_to_bits_list(self.castling_rights), ep, np.full(
+                                64, self.halfmove_clock), np.full(64, int(turn))
+                            ], dtype=np.int16)
+
+        return image.transpose().reshape(8, 8, -1)
 
     ##### Returns a bitboard of the color that are less controlled by our pawns #####
     ##### might change to BOOL in the future #####
@@ -113,4 +135,5 @@ def int_to_bits_list(x): return list(map(int, '{:064b}'.format(x)))
 
 
 board = SmartBoard()
-board.image()
+img = board.image()
+print(img.shape)
