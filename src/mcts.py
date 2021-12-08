@@ -317,9 +317,11 @@ def UCB_score(config: Config, parent: Node, child: Node):
 def actions(game: Board, prune: bool, config: Config) -> dict:
 
     policy_logits = Policy(game.image())
-    actions = ((a, math.exp(policy_logits[moves.index(a)])) for a in game.generate_legal_moves)
+    actions = ((a, math.exp(policy_logits[moves.index(a)])) for a in game.generate_legal_moves())
 
     if not prune: return {a[0]: a[1] for a in actions}
+
+    if game.is_endgame(): return {}
 
     actions = sorted(actions, key=itemgetter[1], reverse=True)
 
