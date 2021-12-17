@@ -26,5 +26,26 @@ class Config:
         self.weight_decay = 1e-4 
         self.momentum = 0.9 
 
-        # minimum depth that the engine will calculate to
         self.min_depth = 6
+        self.difference_offset = 4
+        self.pruned_moves = 5
+        
+class GameConfig:
+    def __init__(self):
+        self.action_space = 4972 # action space for chess
+        
+class TrainConfig:
+    def __init__(self):
+        self.num_residual_blocks = 20
+        
+        self.dynamics_split = 10
+        self.inference_split = self.num_residual_blocks - self.dynamics_split
+        
+        self.num_filters = 256
+        self.first_kernel_size = 3
+        
+        self.kernel_size = 5
+        
+        self.num_update_residual_blocks = 5
+        
+        self.value_fc_size = 256
