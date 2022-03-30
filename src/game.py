@@ -1,4 +1,3 @@
-from numpy.lib.shape_base import get_array_prepare
 import chess
 import numpy as np
 
